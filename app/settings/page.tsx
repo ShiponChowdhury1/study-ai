@@ -71,8 +71,8 @@ export default function SettingsPage() {
               <div className="flex items-center gap-4">
                 <div className="relative">
                   <Avatar className="h-16 w-16">
-                    <AvatarImage src="/placeholder-avatar.jpg" />
-                    <AvatarFallback className="bg-orange-200">DW</AvatarFallback>
+                    <AvatarImage src="/logo/shipon.jpg" />
+                    <AvatarFallback className="bg-blue-500 text-white">AD</AvatarFallback>
                   </Avatar>
                   <button className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-blue-500 text-white shadow-md hover:bg-blue-600">
                     <Camera className="h-4 w-4" />

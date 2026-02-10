@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useAppDispatch } from '@/redux/hooks'
 import { toggleMobileSidebar } from '@/redux/slices/sidebarSlice'
 import { Menu, ChevronDown, Settings, LogOut } from 'lucide-react'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,7 +46,8 @@ export function Header({ title }: HeaderProps) {
         {/* User dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger className="flex items-center gap-2 rounded-lg p-2 hover:bg-gray-100 focus:outline-none">
-            <Avatar className="h-9 w-9 bg-blue-500">
+            <Avatar className="h-9 w-9">
+              <AvatarImage src="/logo/shipon.jpg" alt="Admin" />
               <AvatarFallback className="bg-blue-500 text-white text-sm font-medium">
                 AD
               </AvatarFallback>
