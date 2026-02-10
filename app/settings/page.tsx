@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Camera, Bell, MessageSquare, Send, X } from 'lucide-react'
+import { Camera, Bell, MessageSquare, Send, X, Mail, ShieldCheck, KeyRound } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AdminInfo } from '@/types'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -262,15 +262,7 @@ export default function SettingsPage() {
                     Change email
                   </button>
                 </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">Phone Number</label>
-                  <Input
-                    type="tel"
-                    value={formData.phoneNumber}
-                    onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-                    placeholder="+1 (555) 000-0000"
-                  />
-                </div>
+        
               </div>
               <Button onClick={handleSubmit} className="w-full bg-blue-500 hover:bg-blue-600 sm:w-auto">
                 Confirm
@@ -447,60 +439,86 @@ export default function SettingsPage() {
       case 'change-email':
         return (
           <Card className="border-gray-200 shadow-sm">
-            <CardHeader>
-              <CardTitle>Change Mail</CardTitle>
-              <CardDescription>Update your store details and branding</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">New Mail</label>
-                  <div className="relative">
-                    <Input
-                      type="email"
-                      value={newEmail}
-                      onChange={(e) => setNewEmail(e.target.value)}
-                      placeholder="admin@luxestore.com"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleSendOtp}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-600 hover:text-gray-900"
-                    >
-                      Send OTP
-                    </button>
-                  </div>
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
+                  <Mail className="h-5 w-5 text-blue-500" />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">OTP Verification</label>
-                  <div className="flex gap-2">
-                    {otpValues.map((value, index) => (
-                      <Input
-                        key={index}
-                        id={`otp-${index}`}
-                        type="text"
-                        maxLength={1}
-                        value={value}
-                        onChange={(e) => handleOtpChange(index, e.target.value)}
-                        className="w-12 h-12 text-center text-lg"
-                      />
-                    ))}
-                  </div>
-                  <div className="mt-2 text-sm">
-                    <span className="text-gray-600">Didn&apos;t receive code ? </span>
-                    <button
-                      type="button"
-                      onClick={handleResendOtp}
-                      className="text-blue-500 hover:text-blue-600 font-medium"
-                    >
-                      Resend OTP
-                    </button>
-                  </div>
+                  <CardTitle>Change Email</CardTitle>
+                  <CardDescription>Update your email address securely with OTP verification</CardDescription>
                 </div>
               </div>
-              <Button onClick={handleConfirmEmail} className="w-full bg-blue-500 hover:bg-blue-600 sm:w-auto">
-                Confirm
-              </Button>
+            </CardHeader>
+            <CardContent className="space-y-6 pt-4">
+              {/* Step 1: New Email */}
+              <div className="w-full sm:w-1/2">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-white text-xs font-bold">1</div>
+                  <span className="text-sm font-semibold text-gray-800">Enter New Email</span>
+                </div>
+                <div className="relative">
+                  <Input
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    placeholder="newemail@example.com"
+                    className="pr-24"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSendOtp}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-100"
+                  >
+                    Send OTP
+                  </button>
+                </div>
+                <p className="mt-1.5 text-xs text-gray-400">A 6-digit code will be sent to this email</p>
+              </div>
+
+              <div className="border-t border-dashed border-gray-200" />
+
+              {/* Step 2: OTP Verification */}
+              <div className="w-full sm:w-1/2">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-white text-xs font-bold">2</div>
+                  <span className="text-sm font-semibold text-gray-800">Verify OTP Code</span>
+                </div>
+                <div className="flex gap-3">
+                  {otpValues.map((value, index) => (
+                    <Input
+                      key={index}
+                      id={`otp-${index}`}
+                      type="text"
+                      maxLength={1}
+                      value={value}
+                      onChange={(e) => handleOtpChange(index, e.target.value)}
+                      className="w-12 h-12 text-center text-lg font-semibold border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  ))}
+                </div>
+                <div className="mt-2 flex items-center gap-1 text-sm">
+                  <span className="text-gray-500">Didn&apos;t receive code?</span>
+                  <button
+                    type="button"
+                    onClick={handleResendOtp}
+                    className="text-blue-500 hover:text-blue-600 font-semibold underline-offset-2 hover:underline"
+                  >
+                    Resend
+                  </button>
+                </div>
+              </div>
+
+              <div className="border-t border-gray-200 pt-2">
+                <div className="flex items-center gap-2 mb-4">
+                  <ShieldCheck className="h-4 w-4 text-green-500" />
+                  <span className="text-xs text-gray-500">Your email change is secured with two-step verification</span>
+                </div>
+                <Button onClick={handleConfirmEmail} className="bg-blue-500 hover:bg-blue-600 gap-2">
+                  <KeyRound className="h-4 w-4" />
+                  Confirm Email Change
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )
