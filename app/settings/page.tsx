@@ -177,6 +177,24 @@ export default function SettingsPage() {
     }
   }
 
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace') {
+      e.preventDefault()
+      const newOtpValues = [...otpValues]
+      if (otpValues[index]) {
+        // Clear current field
+        newOtpValues[index] = ''
+        setOtpValues(newOtpValues)
+      } else if (index > 0) {
+        // If already empty, clear previous and focus it
+        newOtpValues[index - 1] = ''
+        setOtpValues(newOtpValues)
+        const prevInput = document.getElementById(`otp-${index - 1}`)
+        prevInput?.focus()
+      }
+    }
+  }
+
   const handleSendOtp = () => {
     console.log('Sending OTP to:', newEmail)
     // Add OTP sending logic
@@ -480,10 +498,7 @@ export default function SettingsPage() {
 
               {/* Step 2: OTP Verification */}
               <div className="w-full sm:w-1/2">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-white text-xs font-bold">2</div>
-                  <span className="text-sm font-semibold text-gray-800">Verify OTP Code</span>
-                </div>
+                <label className="mb-3 block text-sm font-semibold text-gray-800">Verify OTP Code</label>
                 <div className="flex gap-3">
                   {otpValues.map((value, index) => (
                     <Input
@@ -491,8 +506,11 @@ export default function SettingsPage() {
                       id={`otp-${index}`}
                       type="text"
                       maxLength={1}
+                      title=""
+                      autoComplete="off"
                       value={value}
                       onChange={(e) => handleOtpChange(index, e.target.value)}
+                      onKeyDown={(e) => handleOtpKeyDown(index, e)}
                       className="w-12 h-12 text-center text-lg font-semibold border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                     />
                   ))}
