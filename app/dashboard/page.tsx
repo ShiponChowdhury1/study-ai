@@ -4,7 +4,6 @@ import { useAppSelector } from '@/redux/hooks'
 import { Header } from '@/components/layout/Header'
 import { StatsCard, LineChartCard, BarChartCard } from '@/components/shared'
 import { Users, UserCheck, UserX, FileQuestion, Layers, Upload } from 'lucide-react'
-
 export default function DashboardPage() {
   const { stats, quizFlashcardData, dailyActiveStudents } = useAppSelector(
     (state) => state.dashboard

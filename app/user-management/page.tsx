@@ -1,6 +1,7 @@
 'use client'
 
 import { useAppSelector, useAppDispatch } from '@/redux/hooks'
+import type { RootState } from '@/redux/store'
 import { setFilter, setSearchQuery, toggleUserStatus } from '@/redux/slices/usersSlice'
 import { Header } from '@/components/layout/Header'
 import { Card, CardContent } from '@/components/ui/card'
@@ -21,7 +22,7 @@ import { getInitials, cn } from '@/lib/utils'
 
 export default function UserManagementPage() {
   const dispatch = useAppDispatch()
-  const { users, filter, searchQuery } = useAppSelector((state) => state.users)
+  const { users, filter, searchQuery } = useAppSelector((state: RootState) => state.users)
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch =

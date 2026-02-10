@@ -13,7 +13,7 @@ import {
 
 interface BarChartCardProps {
   title: string
-  data: Array<{ name: string; value: number }>
+  data: Array<{ name: string; value?: number; [key: string]: string | number | undefined }>
   color?: string
   height?: number
 }
