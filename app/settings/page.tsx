@@ -6,6 +6,7 @@ import { updateAdminInfo, setActiveSection } from '@/redux/slices/settingsSlice'
 import { Header } from '@/components/layout/Header'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -38,6 +39,10 @@ export default function SettingsPage() {
     confirmPassword: '',
   })
   const [notifications, setNotifications] = useState(notificationRules)
+  const [isEditingPrivacy, setIsEditingPrivacy] = useState(false)
+  const [isEditingTerms, setIsEditingTerms] = useState(false)
+  const [privacyContent, setPrivacyContent] = useState('')
+  const [termsContent, setTermsContent] = useState('')
 
   const handleInputChange = (field: keyof AdminInfo, value: string) => {
     setFormData((prev: AdminInfo) => ({ ...prev, [field]: value }))
@@ -56,6 +61,36 @@ export default function SettingsPage() {
     setNotifications(prev => 
       prev.map(n => n.id === id ? { ...n, enabled: !n.enabled } : n)
     )
+  }
+
+  const handleEditPrivacy = () => {
+    setIsEditingPrivacy(true)
+  }
+
+  const handleSavePrivacy = () => {
+    console.log('Privacy policy updated:', privacyContent)
+    setIsEditingPrivacy(false)
+    // Add save logic
+  }
+
+  const handleCancelPrivacy = () => {
+    setIsEditingPrivacy(false)
+    setPrivacyContent('')
+  }
+
+  const handleEditTerms = () => {
+    setIsEditingTerms(true)
+  }
+
+  const handleSaveTerms = () => {
+    console.log('Terms & conditions updated:', termsContent)
+    setIsEditingTerms(false)
+    // Add save logic
+  }
+
+  const handleCancelTerms = () => {
+    setIsEditingTerms(false)
+    setTermsContent('')
   }
 
   const renderContent = () => {
@@ -199,9 +234,40 @@ export default function SettingsPage() {
           <Card className="border-gray-200 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Privacy Policy</CardTitle>
-              <Button className="bg-blue-500 hover:bg-blue-600">Edit</Button>
+              {!isEditingPrivacy ? (
+                <Button 
+                  className="bg-blue-500 hover:bg-blue-600"
+                  onClick={handleEditPrivacy}
+                >
+                  Edit
+                </Button>
+              ) : (
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline"
+                    onClick={handleCancelPrivacy}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    className="bg-blue-500 hover:bg-blue-600"
+                    onClick={handleSavePrivacy}
+                  >
+                    Save
+                  </Button>
+                </div>
+              )}
             </CardHeader>
             <CardContent className="prose max-w-none">
+              {isEditingPrivacy ? (
+                <Textarea
+                  value={privacyContent}
+                  onChange={(e) => setPrivacyContent(e.target.value)}
+                  className="min-h-[500px] font-mono text-sm"
+                  placeholder="Enter privacy policy content..."
+                />
+              ) : (
+              <>
               <h2 className="text-lg font-semibold">1. Introduction</h2>
               <p className="text-gray-600 text-sm">
                 Form-Cert SRL (&ldquo;we,&rdquo; &ldquo;our,&rdquo; or &ldquo;us&rdquo;) is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our platform and use our services.
@@ -247,6 +313,8 @@ export default function SettingsPage() {
               <p className="text-gray-600 text-sm">If you have questions about this Privacy Policy, please contact us:</p>
               <p className="text-blue-500 text-sm">Email: privacy@form-cert.eu</p>
               <p className="text-blue-500 text-sm">Address: Via Roma 123, 20121 Milano, Italy</p>
+              </>
+              )}
             </CardContent>
           </Card>
         )
@@ -256,9 +324,40 @@ export default function SettingsPage() {
           <Card className="border-gray-200 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Terms & Conditions</CardTitle>
-              <Button className="bg-blue-500 hover:bg-blue-600">Edit</Button>
+              {!isEditingTerms ? (
+                <Button 
+                  className="bg-blue-500 hover:bg-blue-600"
+                  onClick={handleEditTerms}
+                >
+                  Edit
+                </Button>
+              ) : (
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline"
+                    onClick={handleCancelTerms}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    className="bg-blue-500 hover:bg-blue-600"
+                    onClick={handleSaveTerms}
+                  >
+                    Save
+                  </Button>
+                </div>
+              )}
             </CardHeader>
             <CardContent className="prose max-w-none">
+              {isEditingTerms ? (
+                <Textarea
+                  value={termsContent}
+                  onChange={(e) => setTermsContent(e.target.value)}
+                  className="min-h-[500px] font-mono text-sm"
+                  placeholder="Enter terms & conditions content..."
+                />
+              ) : (
+              <>
               <h2 className="text-lg font-semibold">1. Acceptance of Terms</h2>
               <p className="text-gray-600 text-sm">
                 By accessing and using StudyAI, you accept and agree to be bound by the terms and provision of this agreement.
@@ -283,6 +382,8 @@ export default function SettingsPage() {
               <p className="text-gray-600 text-sm">
                 The materials appearing on StudyAI could include technical, typographical, or photographic errors. StudyAI does not warrant that any of the materials on its website are accurate, complete or current.
               </p>
+              </>
+              )}
             </CardContent>
           </Card>
         )
