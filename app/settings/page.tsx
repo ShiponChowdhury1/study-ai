@@ -10,16 +10,25 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Camera, Bell } from 'lucide-react'
+import { Camera, Bell, MessageSquare, Send, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AdminInfo } from '@/types'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
-const settingsSections = [
+const defaultSettingsSections = [
+  { id: 'admin-info', label: 'Admin Information' },
+  { id: 'change-password', label: 'Change Password' },
+  { id: 'notification', label: 'Notification' },
+   { id: 'comment', label: 'Comments' },
+  { id: 'privacy-policy', label: 'Privacy Policy' },
+] as const
+
+const changeEmailSections = [
   { id: 'admin-info', label: 'Admin Information' },
   { id: 'change-password', label: 'Change Password' },
   { id: 'notification', label: 'Notification' },
   { id: 'privacy-policy', label: 'Privacy Policy' },
-  { id: 'terms-conditions', label: 'Terms & Conditions' },
+  { id: 'change-email', label: 'Change Email' },
 ] as const
 
 const notificationRules = [
@@ -28,6 +37,71 @@ const notificationRules = [
   { id: 'support-tickets', title: 'High Priority Support Tickets', description: 'Immediate notification for urgent tickets', enabled: true },
   { id: 'flagged-content', title: 'Flagged Content', description: 'Alert when videos are flagged', enabled: true },
 ]
+
+interface StudentFeedback {
+  id: string
+  studentName: string
+  timeAgo: string
+  status: 'NEW' | 'REVIEWING' | 'RESOLVED'
+  category: 'BUG' | 'FEATURE REQUEST' | 'QUESTION' | 'OTHER'
+  message: string
+}
+
+const mockFeedbacks: StudentFeedback[] = [
+  {
+    id: '1',
+    studentName: 'Zhang Wei',
+    timeAgo: '2H AGO',
+    status: 'NEW',
+    category: 'BUG',
+    message: 'The physics formulas are sometimes rendered incorrectly on smaller screens.',
+  },
+  {
+    id: '2',
+    studentName: 'Li Na',
+    timeAgo: '5H AGO',
+    status: 'REVIEWING',
+    category: 'FEATURE REQUEST',
+    message: 'I would love to be able to export my flashcards to Anki.',
+  },
+  {
+    id: '3',
+    studentName: 'Wang Yong',
+    timeAgo: '1D AGO',
+    status: 'RESOLVED',
+    category: 'QUESTION',
+    message: 'How do I change the difficulty level of the generated quizzes?',
+  },
+  {
+    id: '4',
+    studentName: 'Liu Yang',
+    timeAgo: '2D AGO',
+    status: 'RESOLVED',
+    category: 'OTHER',
+    message: 'Great app! It really helped me with my finals.',
+  },
+  {
+    id: '5',
+    studentName: 'Chen Xia',
+    timeAgo: '3D AGO',
+    status: 'REVIEWING',
+    category: 'BUG',
+    message: 'The app crashes when I try to upload large PDF files.',
+  },
+]
+
+const statusColors: Record<string, string> = {
+  NEW: 'bg-blue-100 text-blue-700 border-blue-200',
+  REVIEWING: 'bg-orange-100 text-orange-700 border-orange-200',
+  RESOLVED: 'bg-green-100 text-green-700 border-green-200',
+}
+
+const categoryColors: Record<string, string> = {
+  'BUG': 'bg-purple-100 text-purple-700',
+  'FEATURE REQUEST': 'bg-blue-100 text-blue-700',
+  'QUESTION': 'bg-indigo-100 text-indigo-700',
+  'OTHER': 'bg-gray-100 text-gray-700',
+}
 
 export default function SettingsPage() {
   const dispatch = useAppDispatch()
@@ -40,9 +114,15 @@ export default function SettingsPage() {
   })
   const [notifications, setNotifications] = useState(notificationRules)
   const [isEditingPrivacy, setIsEditingPrivacy] = useState(false)
-  const [isEditingTerms, setIsEditingTerms] = useState(false)
   const [privacyContent, setPrivacyContent] = useState('')
-  const [termsContent, setTermsContent] = useState('')
+  const [isChangeEmailMode, setIsChangeEmailMode] = useState(false)
+  const [newEmail, setNewEmail] = useState('')
+  const [otpValues, setOtpValues] = useState(['', '', '', '', '', ''])
+  const [commentFilter, setCommentFilter] = useState<'ALL' | 'NEW' | 'REVIEWING' | 'RESOLVED'>('ALL')
+  const [selectedFeedback, setSelectedFeedback] = useState<StudentFeedback | null>(null)
+  const [replyMessage, setReplyMessage] = useState('')
+  
+  const settingsSections = isChangeEmailMode ? changeEmailSections : defaultSettingsSections
 
   const handleInputChange = (field: keyof AdminInfo, value: string) => {
     setFormData((prev: AdminInfo) => ({ ...prev, [field]: value }))
@@ -78,19 +158,57 @@ export default function SettingsPage() {
     setPrivacyContent('')
   }
 
-  const handleEditTerms = () => {
-    setIsEditingTerms(true)
+  const handleChangeEmail = () => {
+    setIsChangeEmailMode(true)
+    dispatch(setActiveSection('change-email'))
   }
 
-  const handleSaveTerms = () => {
-    console.log('Terms & conditions updated:', termsContent)
-    setIsEditingTerms(false)
-    // Add save logic
+  const handleOtpChange = (index: number, value: string) => {
+    if (value.length <= 1 && /^[0-9]*$/.test(value)) {
+      const newOtpValues = [...otpValues]
+      newOtpValues[index] = value
+      setOtpValues(newOtpValues)
+      
+      // Auto-focus next input
+      if (value && index < 5) {
+        const nextInput = document.getElementById(`otp-${index + 1}`)
+        nextInput?.focus()
+      }
+    }
   }
 
-  const handleCancelTerms = () => {
-    setIsEditingTerms(false)
-    setTermsContent('')
+  const handleSendOtp = () => {
+    console.log('Sending OTP to:', newEmail)
+    // Add OTP sending logic
+  }
+
+  const handleResendOtp = () => {
+    console.log('Resending OTP')
+    setOtpValues(['', '', '', '', '', ''])
+    // Add resend OTP logic
+  }
+
+  const handleConfirmEmail = () => {
+    const otp = otpValues.join('')
+    console.log('Confirming email change with OTP:', otp)
+    setIsChangeEmailMode(false)
+    dispatch(setActiveSection('admin-info'))
+    // Add email confirmation logic
+  }
+
+  const filteredFeedbacks = commentFilter === 'ALL' 
+    ? mockFeedbacks 
+    : mockFeedbacks.filter(f => f.status === commentFilter)
+
+  const handleSendResponse = () => {
+    console.log('Sending response:', replyMessage, 'to', selectedFeedback?.studentName)
+    setReplyMessage('')
+    setSelectedFeedback(null)
+  }
+
+  const handleDiscard = () => {
+    setReplyMessage('')
+    setSelectedFeedback(null)
   }
 
   const renderContent = () => {
@@ -136,6 +254,13 @@ export default function SettingsPage() {
                     onChange={(e) => handleInputChange('email', e.target.value)}
                     placeholder="admin@luxestore.com"
                   />
+                  <button
+                    type="button"
+                    onClick={handleChangeEmail}
+                    className="mt-2 text-sm text-blue-500 hover:text-blue-600 font-medium"
+                  >
+                    Change email
+                  </button>
                 </div>
                 <div>
                   <label className="mb-2 block text-sm font-medium text-gray-700">Phone Number</label>
@@ -319,70 +444,131 @@ export default function SettingsPage() {
           </Card>
         )
 
-      case 'terms-conditions':
+      case 'change-email':
         return (
           <Card className="border-gray-200 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Terms & Conditions</CardTitle>
-              {!isEditingTerms ? (
-                <Button 
-                  className="bg-blue-500 hover:bg-blue-600"
-                  onClick={handleEditTerms}
-                >
-                  Edit
-                </Button>
-              ) : (
-                <div className="flex gap-2">
-                  <Button 
-                    variant="outline"
-                    onClick={handleCancelTerms}
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    className="bg-blue-500 hover:bg-blue-600"
-                    onClick={handleSaveTerms}
-                  >
-                    Save
-                  </Button>
-                </div>
-              )}
+            <CardHeader>
+              <CardTitle>Change Mail</CardTitle>
+              <CardDescription>Update your store details and branding</CardDescription>
             </CardHeader>
-            <CardContent className="prose max-w-none">
-              {isEditingTerms ? (
-                <Textarea
-                  value={termsContent}
-                  onChange={(e) => setTermsContent(e.target.value)}
-                  className="min-h-[500px] font-mono text-sm"
-                  placeholder="Enter terms & conditions content..."
-                />
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700">New Mail</label>
+                  <div className="relative">
+                    <Input
+                      type="email"
+                      value={newEmail}
+                      onChange={(e) => setNewEmail(e.target.value)}
+                      placeholder="admin@luxestore.com"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSendOtp}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-600 hover:text-gray-900"
+                    >
+                      Send OTP
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700">OTP Verification</label>
+                  <div className="flex gap-2">
+                    {otpValues.map((value, index) => (
+                      <Input
+                        key={index}
+                        id={`otp-${index}`}
+                        type="text"
+                        maxLength={1}
+                        value={value}
+                        onChange={(e) => handleOtpChange(index, e.target.value)}
+                        className="w-12 h-12 text-center text-lg"
+                      />
+                    ))}
+                  </div>
+                  <div className="mt-2 text-sm">
+                    <span className="text-gray-600">Didn&apos;t receive code ? </span>
+                    <button
+                      type="button"
+                      onClick={handleResendOtp}
+                      className="text-blue-500 hover:text-blue-600 font-medium"
+                    >
+                      Resend OTP
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <Button onClick={handleConfirmEmail} className="w-full bg-blue-500 hover:bg-blue-600 sm:w-auto">
+                Confirm
+              </Button>
+            </CardContent>
+          </Card>
+        )
+
+      case 'comment':
+        return (
+          <Card className="border-gray-200 shadow-sm">
+            <CardHeader>
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
+                    <MessageSquare className="h-5 w-5 text-blue-500" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">Student Voice</CardTitle>
+                    <CardDescription>Review and respond to student feedback</CardDescription>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {(['ALL', 'NEW', 'REVIEWING', 'RESOLVED'] as const).map((filter) => (
+                    <button
+                      key={filter}
+                      onClick={() => setCommentFilter(filter)}
+                      className={cn(
+                        'rounded-full px-4 py-1.5 text-xs font-medium transition-colors',
+                        commentFilter === filter
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      )}
+                    >
+                      {filter}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {filteredFeedbacks.length === 0 ? (
+                <p className="py-8 text-center text-sm text-gray-500">No feedback found for this filter.</p>
               ) : (
-              <>
-              <h2 className="text-lg font-semibold">1. Acceptance of Terms</h2>
-              <p className="text-gray-600 text-sm">
-                By accessing and using StudyAI, you accept and agree to be bound by the terms and provision of this agreement.
-              </p>
-              
-              <h2 className="mt-6 text-lg font-semibold">2. Use License</h2>
-              <p className="text-gray-600 text-sm">
-                Permission is granted to temporarily access the materials (information or software) on StudyAI for personal, non-commercial transitory viewing only.
-              </p>
-              
-              <h2 className="mt-6 text-lg font-semibold">3. Disclaimer</h2>
-              <p className="text-gray-600 text-sm">
-                The materials on StudyAI are provided on an &apos;as is&apos; basis. StudyAI makes no warranties, expressed or implied, and hereby disclaims and negates all other warranties.
-              </p>
-              
-              <h2 className="mt-6 text-lg font-semibold">4. Limitations</h2>
-              <p className="text-gray-600 text-sm">
-                In no event shall StudyAI or its suppliers be liable for any damages arising out of the use or inability to use the materials on StudyAI.
-              </p>
-              
-              <h2 className="mt-6 text-lg font-semibold">5. Revisions</h2>
-              <p className="text-gray-600 text-sm">
-                The materials appearing on StudyAI could include technical, typographical, or photographic errors. StudyAI does not warrant that any of the materials on its website are accurate, complete or current.
-              </p>
-              </>
+                filteredFeedbacks.map((feedback) => (
+                  <div
+                    key={feedback.id}
+                    onClick={() => setSelectedFeedback(feedback)}
+                    className="flex cursor-pointer items-start gap-3 rounded-lg border border-gray-200 p-4 transition-colors hover:bg-gray-50"
+                  >
+                    <input type="checkbox" className="mt-1 h-4 w-4 rounded border-gray-300" onClick={(e) => e.stopPropagation()} />
+                    <Avatar className="h-9 w-9 shrink-0">
+                      <AvatarFallback className="bg-blue-100 text-xs text-blue-700">
+                        {feedback.studentName.split(' ').map(n => n[0]).join('')}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-semibold text-gray-900">{feedback.studentName}</span>
+                        <span className="text-xs text-gray-400">{feedback.timeAgo}</span>
+                        <span className={cn('rounded-full border px-2 py-0.5 text-[10px] font-semibold', statusColors[feedback.status])}>
+                          {feedback.status}
+                        </span>
+                        <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-medium', categoryColors[feedback.category])}>
+                          {feedback.category}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-sm text-gray-600 line-clamp-1">{feedback.message}</p>
+                    </div>
+                    <svg className="mt-2 h-4 w-4 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                  </div>
+                ))
               )}
             </CardContent>
           </Card>
@@ -436,6 +622,62 @@ export default function SettingsPage() {
           {renderContent()}
         </div>
       </main>
+
+      {/* Response Dialog */}
+      <Dialog open={!!selectedFeedback} onOpenChange={(open) => !open && handleDiscard()}>
+        <DialogContent className="max-w-lg p-0 gap-0">
+          <DialogHeader className="flex flex-row items-center justify-between border-b px-6 py-4">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5 text-blue-500" />
+              <DialogTitle className="text-base font-semibold">RESPONSE TO STUDENT</DialogTitle>
+            </div>
+            <button onClick={handleDiscard} className="rounded-full p-1 hover:bg-gray-100">
+              <X className="h-4 w-4 text-gray-500" />
+            </button>
+          </DialogHeader>
+
+          <div className="px-6 py-4 space-y-4">
+            {/* Student Inquiry */}
+            <div>
+              <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Student Inquiry</h4>
+              <div className="rounded-lg bg-gray-50 p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Avatar className="h-7 w-7">
+                    <AvatarFallback className="bg-blue-100 text-[10px] text-blue-700">
+                      {selectedFeedback?.studentName.split(' ').map(n => n[0]).join('')}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-sm font-medium text-gray-900">{selectedFeedback?.studentName}</span>
+                  <span className="text-xs text-gray-400">{selectedFeedback?.timeAgo}</span>
+                </div>
+                <p className="text-sm text-gray-600 leading-relaxed">&ldquo;{selectedFeedback?.message}&rdquo;</p>
+              </div>
+            </div>
+
+            {/* Compose Reply */}
+            <div>
+              <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Compose Reply</h4>
+              <Textarea
+                value={replyMessage}
+                onChange={(e) => setReplyMessage(e.target.value)}
+                placeholder="Type your response here..."
+                className="min-h-[120px] resize-none"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 border-t px-6 py-4">
+            <Button variant="outline" onClick={handleDiscard} className="gap-2">
+              <X className="h-4 w-4" />
+              Discard
+            </Button>
+            <Button onClick={handleSendResponse} className="gap-2 bg-blue-500 hover:bg-blue-600">
+              <Send className="h-4 w-4" />
+              Send Response
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

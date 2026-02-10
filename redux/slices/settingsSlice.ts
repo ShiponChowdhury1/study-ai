@@ -3,7 +3,7 @@ import { AdminInfo } from '@/types'
 
 interface SettingsState {
   adminInfo: AdminInfo
-  activeSection: 'admin-info' | 'change-password' | 'notification' | 'privacy-policy' | 'terms-conditions'
+  activeSection: 'admin-info' | 'change-password' | 'notification' | 'privacy-policy' | 'change-email' | 'comment'
   loading: boolean
 }
 
