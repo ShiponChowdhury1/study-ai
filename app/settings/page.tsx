@@ -42,65 +42,49 @@ interface StudentFeedback {
   id: string
   studentName: string
   timeAgo: string
-  status: 'NEW' | 'REVIEWING' | 'RESOLVED'
-  category: 'BUG' | 'FEATURE REQUEST' | 'QUESTION' | 'OTHER'
+  status: 'NEW' | 'RESPONDED'
   message: string
+  avatarColor: string
 }
 
 const mockFeedbacks: StudentFeedback[] = [
   {
     id: '1',
     studentName: 'Zhang Wei',
-    timeAgo: '2H AGO',
+    timeAgo: '2 hours ago',
     status: 'NEW',
-    category: 'BUG',
-    message: 'The physics formulas are sometimes rendered incorrectly on smaller screens.',
+    message: 'I would love to be able to export my flashcards to Anki.',
+    avatarColor: 'bg-green-500',
   },
   {
     id: '2',
-    studentName: 'Li Na',
-    timeAgo: '5H AGO',
-    status: 'REVIEWING',
-    category: 'FEATURE REQUEST',
-    message: 'I would love to be able to export my flashcards to Anki.',
+    studentName: 'Emma Johnson',
+    timeAgo: '5 hours ago',
+    status: 'NEW',
+    message: 'The physics formulas are sometimes rendered incorrectly on smaller screens.',
+    avatarColor: 'bg-purple-500',
   },
   {
     id: '3',
-    studentName: 'Wang Yong',
-    timeAgo: '1D AGO',
-    status: 'RESOLVED',
-    category: 'QUESTION',
-    message: 'How do I change the difficulty level of the generated quizzes?',
+    studentName: 'Michael Chen',
+    timeAgo: '1 day ago',
+    status: 'RESPONDED',
+    message: 'Can we get a dark mode option for late night studying?',
+    avatarColor: 'bg-purple-500',
   },
   {
     id: '4',
-    studentName: 'Liu Yang',
-    timeAgo: '2D AGO',
-    status: 'RESOLVED',
-    category: 'OTHER',
-    message: 'Great app! It really helped me with my finals.',
-  },
-  {
-    id: '5',
-    studentName: 'Chen Xia',
-    timeAgo: '3D AGO',
-    status: 'REVIEWING',
-    category: 'BUG',
-    message: 'The app crashes when I try to upload large PDF files.',
+    studentName: 'Sarah Williams',
+    timeAgo: '2 days ago',
+    status: 'RESPONDED',
+    message: 'The AI sometimes generates duplicate questions in my quizzes.',
+    avatarColor: 'bg-purple-500',
   },
 ]
 
 const statusColors: Record<string, string> = {
-  NEW: 'bg-blue-100 text-blue-700 border-blue-200',
-  REVIEWING: 'bg-orange-100 text-orange-700 border-orange-200',
-  RESOLVED: 'bg-green-100 text-green-700 border-green-200',
-}
-
-const categoryColors: Record<string, string> = {
-  'BUG': 'bg-purple-100 text-purple-700',
-  'FEATURE REQUEST': 'bg-blue-100 text-blue-700',
-  'QUESTION': 'bg-indigo-100 text-indigo-700',
-  'OTHER': 'bg-gray-100 text-gray-700',
+  NEW: 'bg-blue-500 text-white',
+  RESPONDED: 'bg-green-500 text-white',
 }
 
 export default function SettingsPage() {
@@ -118,7 +102,7 @@ export default function SettingsPage() {
   const [isChangeEmailMode, setIsChangeEmailMode] = useState(false)
   const [newEmail, setNewEmail] = useState('')
   const [otpValues, setOtpValues] = useState(['', '', '', '', '', ''])
-  const [commentFilter, setCommentFilter] = useState<'ALL' | 'NEW' | 'REVIEWING' | 'RESOLVED'>('ALL')
+  const [commentFilter, setCommentFilter] = useState<'ALL' | 'NEW' | 'RESPONDED'>('ALL')
   const [selectedFeedback, setSelectedFeedback] = useState<StudentFeedback | null>(null)
   const [replyMessage, setReplyMessage] = useState('')
   
@@ -544,68 +528,47 @@ export default function SettingsPage() {
       case 'comment':
         return (
           <Card className="border-gray-200 shadow-sm">
-            <CardHeader>
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
-                    <MessageSquare className="h-5 w-5 text-blue-500" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">Student Voice</CardTitle>
-                    <CardDescription>Review and respond to student feedback</CardDescription>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {(['ALL', 'NEW', 'REVIEWING', 'RESOLVED'] as const).map((filter) => (
-                    <button
-                      key={filter}
-                      onClick={() => setCommentFilter(filter)}
+            <CardHeader className="pb-0">
+              <CardTitle className="text-base font-semibold text-gray-900">All Comments</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="divide-y divide-gray-200">
+                {filteredFeedbacks.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-gray-500">No comments found.</p>
+                ) : (
+                  filteredFeedbacks.map((feedback, index) => (
+                    <div
+                      key={feedback.id}
+                      onClick={() => setSelectedFeedback(feedback)}
                       className={cn(
-                        'rounded-full px-4 py-1.5 text-xs font-medium transition-colors',
-                        commentFilter === filter
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        'cursor-pointer py-4 transition-colors hover:bg-gray-50/50',
+                        index === 0 && 'pt-0',
+                        selectedFeedback?.id === feedback.id && 'border-l-3 border-l-blue-500 pl-4 -ml-4 bg-blue-50/30'
                       )}
                     >
-                      {filter}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {filteredFeedbacks.length === 0 ? (
-                <p className="py-8 text-center text-sm text-gray-500">No feedback found for this filter.</p>
-              ) : (
-                filteredFeedbacks.map((feedback) => (
-                  <div
-                    key={feedback.id}
-                    onClick={() => setSelectedFeedback(feedback)}
-                    className="flex cursor-pointer items-start gap-3 rounded-lg border border-gray-200 p-4 transition-colors hover:bg-gray-50"
-                  >
-                    <input type="checkbox" className="mt-1 h-4 w-4 rounded border-gray-300" onClick={(e) => e.stopPropagation()} />
-                    <Avatar className="h-9 w-9 shrink-0">
-                      <AvatarFallback className="bg-blue-100 text-xs text-blue-700">
-                        {feedback.studentName.split(' ').map(n => n[0]).join('')}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm font-semibold text-gray-900">{feedback.studentName}</span>
-                        <span className="text-xs text-gray-400">{feedback.timeAgo}</span>
-                        <span className={cn('rounded-full border px-2 py-0.5 text-[10px] font-semibold', statusColors[feedback.status])}>
-                          {feedback.status}
-                        </span>
-                        <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-medium', categoryColors[feedback.category])}>
-                          {feedback.category}
-                        </span>
+                      <div className="flex items-start gap-3">
+                        <Avatar className="h-9 w-9 shrink-0 mt-0.5">
+                          <AvatarFallback className={cn('text-xs text-white font-semibold', feedback.avatarColor)}>
+                            {feedback.studentName.split(' ').map(n => n[0]).join('')}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className="text-sm font-semibold text-gray-900">{feedback.studentName}</span>
+                              <p className="text-xs text-gray-400">{feedback.timeAgo}</p>
+                            </div>
+                            <span className={cn('rounded-md px-3 py-1 text-[11px] font-bold tracking-wide', statusColors[feedback.status])}>
+                              {feedback.status}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-sm text-gray-600">{feedback.message}</p>
+                        </div>
                       </div>
-                      <p className="mt-1 text-sm text-gray-600 line-clamp-1">{feedback.message}</p>
                     </div>
-                    <svg className="mt-2 h-4 w-4 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                  </div>
-                ))
-              )}
+                  ))
+                )}
+              </div>
             </CardContent>
           </Card>
         )
@@ -661,53 +624,46 @@ export default function SettingsPage() {
 
       {/* Response Dialog */}
       <Dialog open={!!selectedFeedback} onOpenChange={(open) => !open && handleDiscard()}>
-        <DialogContent className="max-w-lg p-0 gap-0">
-          <DialogHeader className="flex flex-row items-center justify-between border-b px-6 py-4">
+        <DialogContent className="max-w-lg p-0 gap-0 rounded-xl overflow-hidden">
+          <DialogHeader className="flex flex-row items-center justify-between px-6 py-4 border-b border-gray-100">
             <div className="flex items-center gap-2">
               <MessageSquare className="h-5 w-5 text-blue-500" />
-              <DialogTitle className="text-base font-semibold">RESPONSE TO STUDENT</DialogTitle>
+              <DialogTitle className="text-base font-semibold text-gray-900">Response to Student</DialogTitle>
             </div>
-            <button onClick={handleDiscard} className="rounded-full p-1 hover:bg-gray-100">
-              <X className="h-4 w-4 text-gray-500" />
-            </button>
           </DialogHeader>
 
-          <div className="px-6 py-4 space-y-4">
+          <div className="px-6 py-5 space-y-5">
             {/* Student Inquiry */}
             <div>
-              <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Student Inquiry</h4>
-              <div className="rounded-lg bg-gray-50 p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Avatar className="h-7 w-7">
-                    <AvatarFallback className="bg-blue-100 text-[10px] text-blue-700">
-                      {selectedFeedback?.studentName.split(' ').map(n => n[0]).join('')}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-sm font-medium text-gray-900">{selectedFeedback?.studentName}</span>
-                  <span className="text-xs text-gray-400">{selectedFeedback?.timeAgo}</span>
-                </div>
-                <p className="text-sm text-gray-600 leading-relaxed">&ldquo;{selectedFeedback?.message}&rdquo;</p>
+              <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-gray-500">Student Inquiry</h4>
+              <div className="rounded-lg border border-gray-200 bg-gray-50/50 p-4">
+                <p className="text-sm italic text-gray-700 leading-relaxed">&ldquo;{selectedFeedback?.message}&rdquo;</p>
               </div>
             </div>
 
             {/* Compose Reply */}
             <div>
-              <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Compose Reply</h4>
-              <Textarea
-                value={replyMessage}
-                onChange={(e) => setReplyMessage(e.target.value)}
-                placeholder="Type your response here..."
-                className="min-h-[120px] resize-none"
-              />
+              <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-gray-500">Compose Reply</h4>
+              <div className="rounded-lg border border-gray-200 overflow-hidden">
+                <div className="px-4 pt-3 pb-1 text-sm text-gray-900">
+                  <p>Hi</p>
+                  <p>{selectedFeedback?.studentName?.split(' ')[0]},</p>
+                </div>
+                <Textarea
+                  value={replyMessage}
+                  onChange={(e) => setReplyMessage(e.target.value)}
+                  placeholder="Type your response here..."
+                  className="min-h-[100px] resize-none border-0 shadow-none focus-visible:ring-0 text-sm"
+                />
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-3 border-t px-6 py-4">
-            <Button variant="outline" onClick={handleDiscard} className="gap-2">
-              <X className="h-4 w-4" />
+          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100">
+            <Button variant="outline" onClick={handleDiscard} className="rounded-lg px-6">
               Discard
             </Button>
-            <Button onClick={handleSendResponse} className="gap-2 bg-blue-500 hover:bg-blue-600">
+            <Button onClick={handleSendResponse} className="gap-2 rounded-lg bg-blue-500 hover:bg-blue-600 px-6">
               <Send className="h-4 w-4" />
               Send Response
             </Button>
