@@ -24,9 +24,13 @@ export function Header({ title }: HeaderProps) {
   const [showLogoutModal, setShowLogoutModal] = useState(false)
 
   const handleLogout = () => {
-    console.log('User logged out')
+    // Clear auth cookie & localStorage
+    document.cookie = 'auth_token=; path=/; max-age=0'
+    document.cookie = 'refresh_token=; path=/; max-age=0'
+    localStorage.removeItem('user')
+    localStorage.removeItem('refresh_token')
     setShowLogoutModal(false)
-    // Add actual logout logic
+    window.location.href = '/auth/login'
   }
 
   return (

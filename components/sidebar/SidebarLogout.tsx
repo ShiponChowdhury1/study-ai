@@ -1,18 +1,27 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { LogoutModal } from '@/components/shared/LogoutModal'
+import { useAppDispatch } from '@/redux/hooks'
+import { logout } from '@/redux/slices/authSlice'
 
 export function SidebarLogout() {
   const [showLogoutModal, setShowLogoutModal] = useState(false)
+  const router = useRouter()
+  const dispatch = useAppDispatch()
 
   const handleLogout = () => {
-    // Handle logout logic here
-    console.log('User logged out')
+    // Clear auth cookie & localStorage
+    document.cookie = 'auth_token=; path=/; max-age=0'
+    document.cookie = 'refresh_token=; path=/; max-age=0'
+    localStorage.removeItem('user')
+    localStorage.removeItem('refresh_token')
+    dispatch(logout())
     setShowLogoutModal(false)
-    // Add actual logout logic (e.g., clear session, redirect to login)
+    router.push('/auth/login')
   }
 
   return (

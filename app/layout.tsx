@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ReduxProvider } from "@/redux/provider";
-import { Sidebar } from "@/components/sidebar";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -23,12 +22,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased bg-gray-50`} suppressHydrationWarning>
         <ReduxProvider>
-          <div className="flex min-h-screen">
-            <Sidebar />
-            <div className="flex-1 lg:ml-64">
-              {children}
-            </div>
-          </div>
+          {children}
         </ReduxProvider>
       </body>
     </html>

@@ -1,4 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit'
+import authReducer from './slices/authSlice'
 import usersReducer from './slices/usersSlice'
 import contentReducer from './slices/contentSlice'
 import dashboardReducer from './slices/dashboardSlice'
@@ -8,6 +9,7 @@ import sidebarReducer from './slices/sidebarSlice'
 
 export const store = configureStore({
   reducer: {
+    auth: authReducer,
     users: usersReducer,
     content: contentReducer,
     dashboard: dashboardReducer,
