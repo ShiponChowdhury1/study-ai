@@ -1,20 +1,50 @@
 'use client'
 
-import { useAppSelector } from '@/redux/hooks'
+import { useEffect } from 'react'
+import { useAppSelector, useAppDispatch } from '@/redux/hooks'
+import { fetchDashboardData } from '@/redux/slices/dashboardSlice'
 import { Header } from '@/components/layout/Header'
 import { StatsCard, LineChartCard, BarChartCard } from '@/components/shared'
-import { Users, UserCheck, UserX, FileQuestion, Layers, Upload } from 'lucide-react'
+import { Users, UserCheck, UserX, FileQuestion, Layers, Upload, Loader2 } from 'lucide-react'
+
 export default function DashboardPage() {
-  const { stats, quizFlashcardData, dailyActiveStudents } = useAppSelector(
+  const dispatch = useAppDispatch()
+  const { stats, quizFlashcardData, dailyActiveStudents, loading, error } = useAppSelector(
     (state) => state.dashboard
   )
+
+  useEffect(() => {
+    dispatch(fetchDashboardData())
+  }, [dispatch])
 
   return (
     <div className="flex-1">
       <Header title="Dashboard" />
       
       <main className="p-4 lg:p-6">
-        {/* Stats Grid - Top Row */}
+        {/* Loading State */}
+        {loading && (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && !loading && (
+          <div className="mb-4 rounded-lg bg-red-50 p-4 text-sm text-red-600 border border-red-200">
+            {error}
+            <button
+              onClick={() => dispatch(fetchDashboardData())}
+              className="ml-2 font-medium underline hover:no-underline"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {!loading && (
+          <>
+            {/* Stats Grid - Top Row */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
           <StatsCard
             title="Total Students"
@@ -86,6 +116,8 @@ export default function DashboardPage() {
             color="#3b82f6"
           />
         </div>
+          </>
+        )}
       </main>
     </div>
   )
