@@ -1,4 +1,4 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit'
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
 import { User } from '@/types'
 
 interface UsersState {
@@ -6,27 +6,35 @@ interface UsersState {
   filter: 'all' | 'active' | 'blocked'
   searchQuery: string
   loading: boolean
+  error: string | null
 }
 
-const initialUsers: User[] = [
-  { id: '1', name: 'Emma Johnson', email: 'emma.j@university.edu', joinDate: 'Jan 15, 2026', status: 'Active' },
-  { id: '2', name: 'Michael Chen', email: 'michael.chen@university.edu', joinDate: 'Jan 18, 2026', status: 'Active' },
-  { id: '3', name: 'Sarah Williams', email: 'sarah.w@university.edu', joinDate: 'Jan 20, 2026', status: 'Blocked' },
-  { id: '4', name: 'James Brown', email: 'james.brown@university.edu', joinDate: 'Jan 22, 2026', status: 'Active' },
-  { id: '5', name: 'Lisa Anderson', email: 'lisa.a@university.edu', joinDate: 'Jan 25, 2026', status: 'Active' },
-  { id: '6', name: 'David Martinez', email: 'david.m@university.edu', joinDate: 'Jan 28, 2026', status: 'Blocked' },
-  { id: '7', name: 'Jennifer Taylor', email: 'jennifer.t@university.edu', joinDate: 'Feb 1, 2026', status: 'Active' },
-  { id: '8', name: 'Robert Garcia', email: 'robert.g@university.edu', joinDate: 'Feb 3, 2026', status: 'Active' },
-  { id: '9', name: 'Maria Rodriguez', email: 'maria.r@university.edu', joinDate: 'Feb 5, 2026', status: 'Active' },
-  { id: '10', name: 'William Davis', email: 'william.d@university.edu', joinDate: 'Feb 7, 2026', status: 'Active' },
-]
-
 const initialState: UsersState = {
-  users: initialUsers,
+  users: [],
   filter: 'all',
   searchQuery: '',
   loading: false,
+  error: null,
 }
+
+// Async thunk to fetch users from the backend
+export const fetchUsers = createAsyncThunk(
+  'users/fetchUsers',
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await fetch('/api/proxy/users')
+      if (!res.ok) {
+        const err = await res.json()
+        return rejectWithValue(err.message || 'Failed to fetch users')
+      }
+      const data = await res.json()
+      // API returns { count, next, previous, results: User[] }
+      return data.results as User[]
+    } catch {
+      return rejectWithValue('Network error. Please try again.')
+    }
+  }
+)
 
 const usersSlice = createSlice({
   name: 'users',
@@ -38,17 +46,31 @@ const usersSlice = createSlice({
     setSearchQuery: (state, action: PayloadAction<string>) => {
       state.searchQuery = action.payload
     },
-    toggleUserStatus: (state, action: PayloadAction<string>) => {
+    toggleUserStatus: (state, action: PayloadAction<number>) => {
       const user = state.users.find(u => u.id === action.payload)
       if (user) {
-        user.status = user.status === 'Active' ? 'Blocked' : 'Active'
+        const isNowActive = user.status !== 'Active'
+        user.status = isNowActive ? 'Active' : 'Blocked'
+        user.is_active = isNowActive
       }
     },
-    setLoading: (state, action: PayloadAction<boolean>) => {
-      state.loading = action.payload
-    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchUsers.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(fetchUsers.fulfilled, (state, action) => {
+        state.loading = false
+        state.users = action.payload
+      })
+      .addCase(fetchUsers.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload as string
+      })
   },
 })
 
-export const { setFilter, setSearchQuery, toggleUserStatus, setLoading } = usersSlice.actions
+export const { setFilter, setSearchQuery, toggleUserStatus } = usersSlice.actions
 export default usersSlice.reducer

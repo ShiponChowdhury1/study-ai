@@ -1,8 +1,9 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useAppSelector, useAppDispatch } from '@/redux/hooks'
 import type { RootState } from '@/redux/store'
-import { setFilter, setSearchQuery, toggleUserStatus } from '@/redux/slices/usersSlice'
+import { setFilter, setSearchQuery, toggleUserStatus, fetchUsers } from '@/redux/slices/usersSlice'
 import { Header } from '@/components/layout/Header'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -17,16 +18,20 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Search, Ban, RotateCcw } from 'lucide-react'
+import { Search, Ban, RotateCcw, Loader2 } from 'lucide-react'
 import { getInitials, cn } from '@/lib/utils'
 
 export default function UserManagementPage() {
   const dispatch = useAppDispatch()
-  const { users, filter, searchQuery } = useAppSelector((state: RootState) => state.users)
+  const { users, filter, searchQuery, loading, error } = useAppSelector((state: RootState) => state.users)
+
+  useEffect(() => {
+    dispatch(fetchUsers())
+  }, [dispatch])
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesFilter =
       filter === 'all' ||
@@ -54,6 +59,31 @@ export default function UserManagementPage() {
     ]
     const index = name.charCodeAt(0) % colors.length
     return colors[index]
+  }
+
+  if (loading) {
+    return (
+      <div className="flex-1">
+        <Header title="User Management" />
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex-1">
+        <Header title="User Management" />
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
+          <p className="text-red-500">{error}</p>
+          <Button onClick={() => dispatch(fetchUsers())} variant="outline">
+            Retry
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -108,13 +138,13 @@ export default function UserManagementPage() {
                     <TableRow key={user.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <Avatar className={cn('h-9 w-9', getAvatarColor(user.name))}>
+                          <Avatar className={cn('h-9 w-9', getAvatarColor(user.full_name))}>
                             <AvatarFallback className="text-white text-sm font-medium bg-transparent">
-                              {getInitials(user.name)}
+                              {getInitials(user.full_name)}
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            <p className="font-medium text-gray-900">{user.name}</p>
+                            <p className="font-medium text-gray-900">{user.full_name}</p>
                             <p className="text-sm text-gray-500 sm:hidden">{user.email}</p>
                           </div>
                         </div>
@@ -123,7 +153,7 @@ export default function UserManagementPage() {
                         {user.email}
                       </TableCell>
                       <TableCell className="hidden md:table-cell text-gray-600">
-                        {user.joinDate}
+                        {user.join_date}
                       </TableCell>
                       <TableCell>
                         <Badge

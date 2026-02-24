@@ -18,10 +18,10 @@ export const sidebarItems = [
     href: '/content-control',
   },
   {
-    id: 'reports-analytics',
-    label: 'Reports & Analytics',
-    icon: 'BarChart3',
-    href: '/reports-analytics',
+    id: 'subscriptions',
+    label: 'Subscriptions and plans',
+    icon: 'CreditCard',
+    href: '/subscriptions',
   },
   {
     id: 'settings',

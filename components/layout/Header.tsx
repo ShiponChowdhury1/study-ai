@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { useAppDispatch } from '@/redux/hooks'
+import { useAppDispatch, useAppSelector } from '@/redux/hooks'
 import { toggleMobileSidebar } from '@/redux/slices/sidebarSlice'
+import { logout } from '@/redux/slices/authSlice'
 import { Menu, ChevronDown, Settings, LogOut } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
@@ -21,7 +22,19 @@ interface HeaderProps {
 
 export function Header({ title }: HeaderProps) {
   const dispatch = useAppDispatch()
+  const user = useAppSelector((state) => state.auth.user)
   const [showLogoutModal, setShowLogoutModal] = useState(false)
+
+  // Derived display values
+  const displayName = user?.full_name || 'Admin'
+  const displayEmail = user?.email || ''
+  const avatarUrl = user?.avatar || ''
+  const initials = displayName
+    .split(' ')
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
 
   const handleLogout = () => {
     // Clear auth cookie & localStorage
@@ -29,6 +42,7 @@ export function Header({ title }: HeaderProps) {
     document.cookie = 'refresh_token=; path=/; max-age=0'
     localStorage.removeItem('user')
     localStorage.removeItem('refresh_token')
+    dispatch(logout())
     setShowLogoutModal(false)
     window.location.href = '/auth/login'
   }
@@ -51,14 +65,14 @@ export function Header({ title }: HeaderProps) {
         <DropdownMenu>
           <DropdownMenuTrigger className="flex items-center gap-2 rounded-lg p-2 hover:bg-gray-100 focus:outline-none">
             <Avatar className="h-9 w-9">
-              <AvatarImage src="/logo/shipon.jpg" alt="Admin" />
+              {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName} />}
               <AvatarFallback className="bg-blue-500 text-white text-sm font-medium">
-                AD
+                {initials}
               </AvatarFallback>
             </Avatar>
             <div className="hidden flex-col items-start text-left md:flex">
-              <span className="text-sm font-medium text-gray-900">Admin User</span>
-              <span className="text-xs text-gray-500">admin@studyai.com</span>
+              <span className="text-sm font-medium text-gray-900">{displayName}</span>
+              <span className="text-xs text-gray-500">{displayEmail}</span>
             </div>
             <ChevronDown className="h-4 w-4 text-gray-500" />
           </DropdownMenuTrigger>

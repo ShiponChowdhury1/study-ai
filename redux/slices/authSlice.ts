@@ -4,6 +4,7 @@ export interface AuthUser {
   id: number
   email: string
   full_name: string
+  avatar: string | null
   is_email_verified: boolean
   quiz_difficulty: string
   created_at: string

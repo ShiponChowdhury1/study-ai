@@ -6,6 +6,7 @@ import dashboardReducer from './slices/dashboardSlice'
 import analyticsReducer from './slices/analyticsSlice'
 import settingsReducer from './slices/settingsSlice'
 import sidebarReducer from './slices/sidebarSlice'
+import subscriptionsReducer from './slices/subscriptionsSlice'
 
 export const store = configureStore({
   reducer: {
@@ -16,6 +17,7 @@ export const store = configureStore({
     analytics: analyticsReducer,
     settings: settingsReducer,
     sidebar: sidebarReducer,
+    subscriptions: subscriptionsReducer,
   },
 })
 

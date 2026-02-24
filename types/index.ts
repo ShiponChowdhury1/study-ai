@@ -1,11 +1,11 @@
 // User types
 export interface User {
-  id: string
-  name: string
+  id: number
+  full_name: string
   email: string
-  joinDate: string
+  join_date: string
   status: 'Active' | 'Blocked'
-  avatar?: string
+  is_active: boolean
 }
 
 // Content types

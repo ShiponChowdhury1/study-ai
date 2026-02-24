@@ -9,6 +9,7 @@ import {
   FileText,
   BarChart3,
   Settings,
+  CreditCard,
   LucideIcon,
 } from 'lucide-react'
 
@@ -18,6 +19,7 @@ const iconMap: Record<string, LucideIcon> = {
   FileText,
   BarChart3,
   Settings,
+  CreditCard,
 }
 
 interface SidebarItemProps {
