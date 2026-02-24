@@ -9,6 +9,7 @@ import {
   forgotPasswordFailure,
   clearError,
 } from '@/redux/slices/authSlice'
+import { toast } from 'react-toastify'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Mail, ArrowLeft, Loader2 } from 'lucide-react'
@@ -42,14 +43,18 @@ export default function ForgotPasswordPage() {
       const data = await res.json()
 
       if (!res.ok) {
-        dispatch(forgotPasswordFailure(data.message || 'Failed to send OTP'))
+        const msg = data.message || 'Failed to send OTP'
+        dispatch(forgotPasswordFailure(msg))
+        toast.error(msg)
         return
       }
 
       dispatch(forgotPasswordSuccess(email))
+      toast.success('OTP sent to your email!')
       router.push(`/auth/verify-otp?email=${encodeURIComponent(email)}`)
     } catch {
       dispatch(forgotPasswordFailure('Something went wrong. Please try again.'))
+      toast.error('Something went wrong. Please try again.')
     }
   }
 

@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import 'react-toastify/dist/ReactToastify.css';
 import { ReduxProvider } from "@/redux/provider";
+import { ToastContainer } from 'react-toastify';
 
 const inter = Inter({
   variable: "--font-inter",
@@ -23,6 +25,15 @@ export default function RootLayout({
       <body className={`${inter.variable} font-sans antialiased bg-gray-50`} suppressHydrationWarning>
         <ReduxProvider>
           {children}
+          <ToastContainer
+            position="top-right"
+            autoClose={3000}
+            hideProgressBar={false}
+            newestOnTop
+            closeOnClick
+            pauseOnHover
+            theme="colored"
+          />
         </ReduxProvider>
       </body>
     </html>

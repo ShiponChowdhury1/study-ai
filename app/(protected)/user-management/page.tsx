@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { useAppSelector, useAppDispatch } from '@/redux/hooks'
 import type { RootState } from '@/redux/store'
-import { setFilter, setSearchQuery, toggleUserStatus, fetchUsers } from '@/redux/slices/usersSlice'
+import { setFilter, setSearchQuery, fetchUsers, toggleBlockUser } from '@/redux/slices/usersSlice'
 import { Header } from '@/components/layout/Header'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -19,11 +19,12 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Search, Ban, RotateCcw, Loader2 } from 'lucide-react'
+import { toast } from 'react-toastify'
 import { getInitials, cn } from '@/lib/utils'
 
 export default function UserManagementPage() {
   const dispatch = useAppDispatch()
-  const { users, filter, searchQuery, loading, error } = useAppSelector((state: RootState) => state.users)
+  const { users, filter, searchQuery, loading, error, togglingId } = useAppSelector((state: RootState) => state.users)
 
   useEffect(() => {
     dispatch(fetchUsers())
@@ -172,12 +173,22 @@ export default function UserManagementPage() {
                         <Button
                           variant={user.status === 'Active' ? 'destructive' : 'outline'}
                           size="sm"
-                          onClick={() => dispatch(toggleUserStatus(user.id))}
+                          disabled={togglingId === user.id}
+                          onClick={async () => {
+                            try {
+                              const result = await dispatch(toggleBlockUser(user.id)).unwrap()
+                              toast.success(result.message)
+                            } catch (err) {
+                              toast.error(typeof err === 'string' ? err : 'Failed to update user status')
+                            }
+                          }}
                           className={cn(
                             user.status === 'Blocked' && 'text-teal-600 border-teal-200 hover:bg-teal-50'
                           )}
                         >
-                          {user.status === 'Active' ? (
+                          {togglingId === user.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : user.status === 'Active' ? (
                             <>
                               <Ban className="mr-1 h-4 w-4" />
                               Block

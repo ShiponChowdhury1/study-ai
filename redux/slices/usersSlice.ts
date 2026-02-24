@@ -7,6 +7,7 @@ interface UsersState {
   searchQuery: string
   loading: boolean
   error: string | null
+  togglingId: number | null
 }
 
 const initialState: UsersState = {
@@ -15,6 +16,7 @@ const initialState: UsersState = {
   searchQuery: '',
   loading: false,
   error: null,
+  togglingId: null,
 }
 
 // Async thunk to fetch users from the backend
@@ -36,6 +38,31 @@ export const fetchUsers = createAsyncThunk(
   }
 )
 
+// Async thunk to toggle block/unblock a user
+export const toggleBlockUser = createAsyncThunk(
+  'users/toggleBlockUser',
+  async (userId: number, { rejectWithValue }) => {
+    try {
+      const res = await fetch(`/api/proxy/users/${userId}/toggle-block`, {
+        method: 'POST',
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        return rejectWithValue(err.message || 'Failed to toggle user status')
+      }
+      const data = await res.json()
+      // Returns { message: string, is_active: boolean }
+      return { userId, is_active: data.is_active, message: data.message } as {
+        userId: number
+        is_active: boolean
+        message: string
+      }
+    } catch {
+      return rejectWithValue('Network error. Please try again.')
+    }
+  }
+)
+
 const usersSlice = createSlice({
   name: 'users',
   initialState,
@@ -45,14 +72,6 @@ const usersSlice = createSlice({
     },
     setSearchQuery: (state, action: PayloadAction<string>) => {
       state.searchQuery = action.payload
-    },
-    toggleUserStatus: (state, action: PayloadAction<number>) => {
-      const user = state.users.find(u => u.id === action.payload)
-      if (user) {
-        const isNowActive = user.status !== 'Active'
-        user.status = isNowActive ? 'Active' : 'Blocked'
-        user.is_active = isNowActive
-      }
     },
   },
   extraReducers: (builder) => {
@@ -69,8 +88,23 @@ const usersSlice = createSlice({
         state.loading = false
         state.error = action.payload as string
       })
+      // Toggle block
+      .addCase(toggleBlockUser.pending, (state, action) => {
+        state.togglingId = action.meta.arg
+      })
+      .addCase(toggleBlockUser.fulfilled, (state, action) => {
+        state.togglingId = null
+        const user = state.users.find(u => u.id === action.payload.userId)
+        if (user) {
+          user.is_active = action.payload.is_active
+          user.status = action.payload.is_active ? 'Active' : 'Blocked'
+        }
+      })
+      .addCase(toggleBlockUser.rejected, (state) => {
+        state.togglingId = null
+      })
   },
 })
 
-export const { setFilter, setSearchQuery, toggleUserStatus } = usersSlice.actions
+export const { setFilter, setSearchQuery } = usersSlice.actions
 export default usersSlice.reducer

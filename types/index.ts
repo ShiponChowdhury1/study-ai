@@ -10,12 +10,11 @@ export interface User {
 
 // Content types
 export interface Content {
-  id: string
+  id: number
   title: string
-  contentType: 'Quiz' | 'Flashcard'
-  sourceFile: string
-  createdDate: string
-  status: 'Active' | 'Flagged' | 'Inactive'
+  content_type: string
+  source_file: string
+  created_date: string
 }
 
 // Dashboard stats types

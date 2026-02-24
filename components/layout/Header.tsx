@@ -5,6 +5,7 @@ import { useAppDispatch, useAppSelector } from '@/redux/hooks'
 import { toggleMobileSidebar } from '@/redux/slices/sidebarSlice'
 import { logout } from '@/redux/slices/authSlice'
 import { Menu, ChevronDown, Settings, LogOut } from 'lucide-react'
+import { toast } from 'react-toastify'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -43,6 +44,7 @@ export function Header({ title }: HeaderProps) {
     localStorage.removeItem('user')
     localStorage.removeItem('refresh_token')
     dispatch(logout())
+    toast.success('Logged out successfully!')
     setShowLogoutModal(false)
     window.location.href = '/auth/login'
   }

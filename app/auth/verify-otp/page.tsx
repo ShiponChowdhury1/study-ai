@@ -15,6 +15,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ShieldCheck, ArrowLeft, Loader2, Eye, EyeOff, Lock } from 'lucide-react'
+import { toast } from 'react-toastify'
 import Link from 'next/link'
 
 function VerifyOtpContent() {
@@ -101,13 +102,17 @@ function VerifyOtpContent() {
       const data = await res.json()
 
       if (!res.ok) {
-        dispatch(verifyOtpFailure(data.message || 'Invalid OTP'))
+        const msg = data.message || 'Invalid OTP'
+        dispatch(verifyOtpFailure(msg))
+        toast.error(msg)
         return
       }
 
       dispatch(verifyOtpSuccess())
+      toast.success('OTP verified successfully!')
     } catch {
       dispatch(verifyOtpFailure('Something went wrong. Please try again.'))
+      toast.error('Something went wrong. Please try again.')
     }
   }
 
@@ -142,14 +147,18 @@ function VerifyOtpContent() {
       const data = await res.json()
 
       if (!res.ok) {
-        dispatch(resetPasswordFailure(data.message || 'Failed to reset password'))
+        const msg = data.message || 'Failed to reset password'
+        dispatch(resetPasswordFailure(msg))
+        toast.error(msg)
         return
       }
 
       dispatch(resetPasswordSuccess())
+      toast.success('Password reset successfully!')
       router.push('/auth/login')
     } catch {
       dispatch(resetPasswordFailure('Something went wrong. Please try again.'))
+      toast.error('Something went wrong. Please try again.')
     }
   }
 
@@ -164,8 +173,9 @@ function VerifyOtpContent() {
       })
       setResendTimer(60)
       setOtp(['', '', '', '', '', ''])
+      toast.success('OTP resent successfully!')
     } catch {
-      // silently fail
+      toast.error('Failed to resend OTP')
     }
   }
 

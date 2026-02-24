@@ -4,6 +4,7 @@ import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAppDispatch, useAppSelector } from '@/redux/hooks'
 import { loginStart, loginSuccess, loginFailure, clearError } from '@/redux/slices/authSlice'
+import { toast } from 'react-toastify'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Eye, EyeOff, Mail, Lock, Loader2 } from 'lucide-react'
@@ -42,7 +43,9 @@ function LoginForm() {
       const data = await res.json()
 
       if (!res.ok) {
-        dispatch(loginFailure(data.message || 'Invalid email or password'))
+        const msg = data.message || 'Invalid email or password'
+        dispatch(loginFailure(msg))
+        toast.error(msg)
         return
       }
 
@@ -53,9 +56,11 @@ function LoginForm() {
       localStorage.setItem('refresh_token', data.refresh)
 
       dispatch(loginSuccess({ user: data.user, access: data.access, refresh: data.refresh }))
+      toast.success('Login successful!')
       router.push(callbackUrl)
     } catch {
       dispatch(loginFailure('Something went wrong. Please try again.'))
+      toast.error('Something went wrong. Please try again.')
     }
   }
 
