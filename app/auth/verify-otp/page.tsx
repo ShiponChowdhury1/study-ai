@@ -93,7 +93,7 @@ function VerifyOtpContent() {
     dispatch(verifyOtpStart())
 
     try {
-      const res = await fetch('/api/proxy/verify-otp', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/password/verify-otp/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, otp: otpCode }),
@@ -102,7 +102,7 @@ function VerifyOtpContent() {
       const data = await res.json()
 
       if (!res.ok) {
-        const msg = data.message || 'Invalid OTP'
+        const msg = data.message || data.detail || 'Invalid OTP'
         dispatch(verifyOtpFailure(msg))
         toast.error(msg)
         return
@@ -138,7 +138,7 @@ function VerifyOtpContent() {
     dispatch(resetPasswordStart())
 
     try {
-      const res = await fetch('/api/proxy/reset-password', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/password/reset/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password: newPassword }),
@@ -147,7 +147,7 @@ function VerifyOtpContent() {
       const data = await res.json()
 
       if (!res.ok) {
-        const msg = data.message || 'Failed to reset password'
+        const msg = data.message || data.detail || 'Failed to reset password'
         dispatch(resetPasswordFailure(msg))
         toast.error(msg)
         return
@@ -166,7 +166,7 @@ function VerifyOtpContent() {
     if (resendTimer > 0) return
 
     try {
-      await fetch('/api/proxy/forgot-password', {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/password/forgot/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),

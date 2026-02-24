@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
 import { User } from '@/types'
+import { api } from '@/lib/api'
 
 interface UsersState {
   users: User[]
@@ -24,13 +25,12 @@ export const fetchUsers = createAsyncThunk(
   'users/fetchUsers',
   async (_, { rejectWithValue }) => {
     try {
-      const res = await fetch('/api/proxy/users')
+      const res = await api('/dashboard/users/')
       if (!res.ok) {
         const err = await res.json()
-        return rejectWithValue(err.message || 'Failed to fetch users')
+        return rejectWithValue(err.message || err.detail || 'Failed to fetch users')
       }
       const data = await res.json()
-      // API returns { count, next, previous, results: User[] }
       return data.results as User[]
     } catch {
       return rejectWithValue('Network error. Please try again.')
@@ -43,15 +43,14 @@ export const toggleBlockUser = createAsyncThunk(
   'users/toggleBlockUser',
   async (userId: number, { rejectWithValue }) => {
     try {
-      const res = await fetch(`/api/proxy/users/${userId}/toggle-block`, {
+      const res = await api(`/dashboard/users/${userId}/toggle-block/`, {
         method: 'POST',
       })
       if (!res.ok) {
         const err = await res.json()
-        return rejectWithValue(err.message || 'Failed to toggle user status')
+        return rejectWithValue(err.message || err.detail || 'Failed to toggle user status')
       }
       const data = await res.json()
-      // Returns { message: string, is_active: boolean }
       return { userId, is_active: data.is_active, message: data.message } as {
         userId: number
         is_active: boolean

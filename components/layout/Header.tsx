@@ -38,11 +38,10 @@ export function Header({ title }: HeaderProps) {
     .slice(0, 2)
 
   const handleLogout = () => {
-    // Clear auth cookie & localStorage
-    document.cookie = 'auth_token=; path=/; max-age=0'
-    document.cookie = 'refresh_token=; path=/; max-age=0'
-    localStorage.removeItem('user')
+    // Clear all localStorage
+    localStorage.removeItem('access_token')
     localStorage.removeItem('refresh_token')
+    localStorage.removeItem('user')
     dispatch(logout())
     toast.success('Logged out successfully!')
     setShowLogoutModal(false)

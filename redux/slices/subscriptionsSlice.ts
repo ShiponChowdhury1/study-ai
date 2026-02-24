@@ -1,4 +1,35 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit'
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
+import { api } from '@/lib/api'
+
+// ─── Async Thunks ───────────────────────────────────────────────────────
+export const fetchSubscriptionStats = createAsyncThunk(
+  'subscriptions/fetchStats',
+  async () => {
+    const res = await api('/subscriptions/stats/')
+    if (!res.ok) throw new Error('Failed to fetch subscription stats')
+    const data = await res.json()
+    return {
+      monthlyRevenue: parseFloat(data.monthly_revenue) || 0,
+      growth: data.revenue_growth ?? 0,
+      failedPayments: data.failed_payments ?? 0,
+      activeSubscribers: data.active_subscribers ?? 0,
+    }
+  },
+)
+
+export const fetchRevenueTrend = createAsyncThunk(
+  'subscriptions/fetchRevenueTrend',
+  async () => {
+    const res = await api('/subscriptions/revenue-trend/')
+    if (!res.ok) throw new Error('Failed to fetch revenue trend')
+    const data: { month: string; revenue: number }[] = await res.json()
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    return data.map((item) => ({
+      name: monthNames[new Date(item.month).getMonth()],
+      revenue: item.revenue,
+    }))
+  },
+)
 
 // Types
 export interface SubscriptionPlan {
@@ -47,24 +78,11 @@ interface SubscriptionsState {
 }
 
 const initialState: SubscriptionsState = {
-  monthlyRevenue: 84250,
-  growth: 18.7,
-  failedPayments: 5,
-  activeSubscribers: 3247,
-  revenueTrend: [
-    { name: 'Jan', revenue: 50000 },
-    { name: 'Feb', revenue: 48000 },
-    { name: 'Mar', revenue: 55000 },
-    { name: 'Apr', revenue: 60000 },
-    { name: 'May', revenue: 62000 },
-    { name: 'Jun', revenue: 65000 },
-    { name: 'Jul', revenue: 68000 },
-    { name: 'Aug', revenue: 70000 },
-    { name: 'Sep', revenue: 72000 },
-    { name: 'Oct', revenue: 71000 },
-    { name: 'Nov', revenue: 75000 },
-    { name: 'Dec', revenue: 78000 },
-  ],
+  monthlyRevenue: 0,
+  growth: 0,
+  failedPayments: 0,
+  activeSubscribers: 0,
+  revenueTrend: [],
   plans: [
     {
       id: 'free',
@@ -145,6 +163,27 @@ const subscriptionsSlice = createSlice({
     deletePlan(state, action: PayloadAction<string>) {
       state.plans = state.plans.filter((p) => p.id !== action.payload)
     },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchSubscriptionStats.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(fetchSubscriptionStats.fulfilled, (state, action) => {
+        state.loading = false
+        state.monthlyRevenue = action.payload.monthlyRevenue
+        state.growth = action.payload.growth
+        state.failedPayments = action.payload.failedPayments
+        state.activeSubscribers = action.payload.activeSubscribers
+      })
+      .addCase(fetchSubscriptionStats.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.error.message || 'Failed to fetch stats'
+      })
+      .addCase(fetchRevenueTrend.fulfilled, (state, action) => {
+        state.revenueTrend = action.payload
+      })
   },
 })
 

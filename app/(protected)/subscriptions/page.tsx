@@ -8,6 +8,8 @@ import {
   addPlan,
   updatePlan,
   deletePlan,
+  fetchSubscriptionStats,
+  fetchRevenueTrend,
   SubscriptionPlan,
 } from '@/redux/slices/subscriptionsSlice'
 import { Header } from '@/components/layout/Header'
@@ -346,6 +348,11 @@ export default function SubscriptionsPage() {
     isCreatePlanModalOpen,
     editingPlan,
   } = useAppSelector((state) => state.subscriptions)
+
+  useEffect(() => {
+    dispatch(fetchSubscriptionStats())
+    dispatch(fetchRevenueTrend())
+  }, [dispatch])
 
   const handleSavePlan = (plan: SubscriptionPlan) => {
     if (editingPlan) {

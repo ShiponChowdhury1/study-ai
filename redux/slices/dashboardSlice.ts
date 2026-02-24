@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { DashboardStats, ChartDataPoint } from '@/types'
+import { api } from '@/lib/api'
 
 // API response types matching backend
 interface DashboardApiResponse {
@@ -33,11 +34,11 @@ export const fetchDashboardData = createAsyncThunk(
   'dashboard/fetchData',
   async (_, { rejectWithValue }) => {
     try {
-      const res = await fetch('/api/proxy/dashboard')
+      const res = await api('/dashboard/')
       const data = await res.json()
 
       if (!res.ok) {
-        return rejectWithValue(data.message || 'Failed to fetch dashboard data')
+        return rejectWithValue(data.message || data.detail || 'Failed to fetch dashboard data')
       }
 
       return data as DashboardApiResponse

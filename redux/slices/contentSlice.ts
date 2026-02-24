@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
 import { Content } from '@/types'
+import { api } from '@/lib/api'
 
 interface ContentState {
   contents: Content[]
@@ -35,10 +36,10 @@ export const fetchContent = createAsyncThunk(
     try {
       const params = new URLSearchParams({ quiz_type: quizType })
       if (page && page > 1) params.set('page', page.toString())
-      const res = await fetch(`/api/proxy/quizzes?${params.toString()}`)
+      const res = await api(`/dashboard/quizzes/?${params.toString()}`)
       if (!res.ok) {
         const err = await res.json()
-        return rejectWithValue(err.message || 'Failed to fetch content')
+        return rejectWithValue(err.message || err.detail || 'Failed to fetch content')
       }
       const data = await res.json()
       return data as {
@@ -58,12 +59,12 @@ export const deleteContent = createAsyncThunk(
   'content/deleteContent',
   async (contentId: number, { rejectWithValue }) => {
     try {
-      const res = await fetch(`/api/proxy/quizzes/${contentId}`, {
+      const res = await api(`/dashboard/quizzes/${contentId}/`, {
         method: 'DELETE',
       })
       if (!res.ok) {
         const err = await res.json()
-        return rejectWithValue(err.message || 'Failed to delete content')
+        return rejectWithValue(err.message || err.detail || 'Failed to delete content')
       }
       return contentId
     } catch {

@@ -6,18 +6,13 @@ import { useAppDispatch } from '@/redux/hooks'
 import { hydrateAuth } from '@/redux/slices/authSlice'
 import { Loader2 } from 'lucide-react'
 
-function getCookie(name: string): string | null {
-  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'))
-  return match ? match[2] : null
-}
-
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const dispatch = useAppDispatch()
   const [isChecking, setIsChecking] = useState(true)
 
   useEffect(() => {
-    const token = getCookie('auth_token')
+    const token = localStorage.getItem('access_token')
     if (!token) {
       router.replace('/auth/login')
     } else {

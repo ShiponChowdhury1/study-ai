@@ -34,7 +34,7 @@ export default function ForgotPasswordPage() {
     dispatch(forgotPasswordStart())
 
     try {
-      const res = await fetch('/api/proxy/forgot-password', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/password/forgot/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
@@ -43,7 +43,7 @@ export default function ForgotPasswordPage() {
       const data = await res.json()
 
       if (!res.ok) {
-        const msg = data.message || 'Failed to send OTP'
+        const msg = data.message || data.detail || 'Failed to send OTP'
         dispatch(forgotPasswordFailure(msg))
         toast.error(msg)
         return

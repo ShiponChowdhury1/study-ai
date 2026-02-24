@@ -34,7 +34,7 @@ function LoginForm() {
     dispatch(loginStart())
 
     try {
-      const res = await fetch('/api/proxy/login', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -43,17 +43,16 @@ function LoginForm() {
       const data = await res.json()
 
       if (!res.ok) {
-        const msg = data.message || 'Invalid email or password'
+        const msg = data.message || data.detail || 'Invalid email or password'
         dispatch(loginFailure(msg))
         toast.error(msg)
         return
       }
 
-      // Set auth cookie (access token)
-      document.cookie = `auth_token=${data.access}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`
-      // Store user info in localStorage
-      localStorage.setItem('user', JSON.stringify(data.user))
+      // Store tokens and user in localStorage
+      localStorage.setItem('access_token', data.access)
       localStorage.setItem('refresh_token', data.refresh)
+      localStorage.setItem('user', JSON.stringify(data.user))
 
       dispatch(loginSuccess({ user: data.user, access: data.access, refresh: data.refresh }))
       toast.success('Login successful!')
