@@ -1,42 +1,35 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAppSelector, useAppDispatch } from '@/redux/hooks'
-import { updateAdminInfo, setActiveSection } from '@/redux/slices/settingsSlice'
+import { updateAdminInfo, setActiveSection, fetchAdminProfile, updateAdminProfile } from '@/redux/slices/settingsSlice'
+import { updateUserProfile } from '@/redux/slices/authSlice'
 import { Header } from '@/components/layout/Header'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
-import { Switch } from '@/components/ui/switch'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Camera, Bell, MessageSquare, Send, X, Mail, ShieldCheck, KeyRound } from 'lucide-react'
+import { Camera, MessageSquare, Send, X, Mail, ShieldCheck, KeyRound, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AdminInfo } from '@/types'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { api } from '@/lib/api'
+import { toast } from 'react-toastify'
 
 const defaultSettingsSections = [
   { id: 'admin-info', label: 'Admin Information' },
   { id: 'change-password', label: 'Change Password' },
-  { id: 'notification', label: 'Notification' },
-   { id: 'comment', label: 'Comments' },
+  { id: 'comment', label: 'Comments' },
   { id: 'privacy-policy', label: 'Privacy Policy' },
 ] as const
 
 const changeEmailSections = [
   { id: 'admin-info', label: 'Admin Information' },
   { id: 'change-password', label: 'Change Password' },
-  { id: 'notification', label: 'Notification' },
   { id: 'privacy-policy', label: 'Privacy Policy' },
   { id: 'change-email', label: 'Change Email' },
 ] as const
-
-const notificationRules = [
-  { id: 'failed-ai', title: 'Failed AI Analysis', description: 'Notify when AI analysis fails', enabled: true },
-  { id: 'payment-failures', title: 'Payment Failures', description: 'Alert on failed payment transactions', enabled: true },
-  { id: 'support-tickets', title: 'High Priority Support Tickets', description: 'Immediate notification for urgent tickets', enabled: true },
-  { id: 'flagged-content', title: 'Flagged Content', description: 'Alert when videos are flagged', enabled: true },
-]
 
 interface StudentFeedback {
   id: string
@@ -89,19 +82,33 @@ const statusColors: Record<string, string> = {
 
 export default function SettingsPage() {
   const dispatch = useAppDispatch()
-  const { adminInfo, activeSection } = useAppSelector((state) => state.settings)
+  const { adminInfo, activeSection, profileLoading, updatingProfile } = useAppSelector((state) => state.settings)
   const [formData, setFormData] = useState<AdminInfo>(adminInfo)
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    dispatch(fetchAdminProfile())
+  }, [dispatch])
+
+  // Sync formData when adminInfo is fetched from API
+  useEffect(() => {
+    setFormData(adminInfo)
+  }, [adminInfo])
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
   })
-  const [notifications, setNotifications] = useState(notificationRules)
   const [isEditingPrivacy, setIsEditingPrivacy] = useState(false)
   const [privacyContent, setPrivacyContent] = useState('')
   const [isChangeEmailMode, setIsChangeEmailMode] = useState(false)
   const [newEmail, setNewEmail] = useState('')
   const [otpValues, setOtpValues] = useState(['', '', '', '', '', ''])
+  const [sendingOtp, setSendingOtp] = useState(false)
+  const [otpSent, setOtpSent] = useState(false)
+  const [confirmingEmail, setConfirmingEmail] = useState(false)
   const [commentFilter, setCommentFilter] = useState<'ALL' | 'NEW' | 'RESPONDED'>('ALL')
   const [selectedFeedback, setSelectedFeedback] = useState<StudentFeedback | null>(null)
   const [replyMessage, setReplyMessage] = useState('')
@@ -112,19 +119,57 @@ export default function SettingsPage() {
     setFormData((prev: AdminInfo) => ({ ...prev, [field]: value }))
   }
 
-  const handleSubmit = () => {
-    dispatch(updateAdminInfo(formData))
+  const extractError = (data: Record<string, unknown>): string => {
+    if (typeof data === 'string') return data
+    if (data.message) return String(data.message)
+    if (data.detail) return String(data.detail)
+    if (data.error) return String(data.error)
+    // Handle DRF field-level errors like { "new_email": ["error msg"] }
+    for (const key of Object.keys(data)) {
+      const val = data[key]
+      if (Array.isArray(val) && val.length > 0) return String(val[0])
+      if (typeof val === 'string') return val
+    }
+    return 'Something went wrong'
+  }
+
+  const handleSubmit = async () => {
+    try {
+      await dispatch(updateAdminProfile({
+        fullName: formData.fullName,
+        avatarFile: avatarFile || undefined,
+      })).unwrap()
+      toast.success('Profile updated successfully')
+      setAvatarFile(null)
+      setAvatarPreview(null)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to update profile'
+      try {
+        const parsed = JSON.parse(msg)
+        toast.error(extractError(parsed))
+      } catch {
+        toast.error(msg)
+      }
+    }
+  }
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setAvatarFile(file)
+      const reader = new FileReader()
+      reader.onloadend = () => setAvatarPreview(reader.result as string)
+      reader.readAsDataURL(file)
+    }
   }
 
   const handlePasswordChange = () => {
     console.log('Password change submitted')
     // Add password change logic
-  }
-
-  const toggleNotification = (id: string) => {
-    setNotifications(prev => 
-      prev.map(n => n.id === id ? { ...n, enabled: !n.enabled } : n)
-    )
   }
 
   const handleEditPrivacy = () => {
@@ -179,23 +224,66 @@ export default function SettingsPage() {
     }
   }
 
-  const handleSendOtp = () => {
-    console.log('Sending OTP to:', newEmail)
-    // Add OTP sending logic
+  const handleSendOtp = async () => {
+    if (!newEmail.trim()) {
+      toast.error('Please enter a new email address')
+      return
+    }
+    setSendingOtp(true)
+    try {
+      const res = await api('/dashboard/change-email/request/', {
+        method: 'POST',
+        body: JSON.stringify({ new_email: newEmail }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success(data.message || 'Verification code sent to new email')
+        setOtpSent(true)
+      } else {
+        toast.error(extractError(data))
+      }
+    } catch {
+      toast.error('Network error. Please try again.')
+    } finally {
+      setSendingOtp(false)
+    }
   }
 
-  const handleResendOtp = () => {
-    console.log('Resending OTP')
+  const handleResendOtp = async () => {
     setOtpValues(['', '', '', '', '', ''])
-    // Add resend OTP logic
+    await handleSendOtp()
   }
 
-  const handleConfirmEmail = () => {
+  const handleConfirmEmail = async () => {
     const otp = otpValues.join('')
-    console.log('Confirming email change with OTP:', otp)
-    setIsChangeEmailMode(false)
-    dispatch(setActiveSection('admin-info'))
-    // Add email confirmation logic
+    if (otp.length !== 6) {
+      toast.error('Please enter the complete 6-digit OTP')
+      return
+    }
+    setConfirmingEmail(true)
+    try {
+      const res = await api('/dashboard/change-email/verify/', {
+        method: 'POST',
+        body: JSON.stringify({ new_email: newEmail, otp }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success(data.message || 'Email changed successfully')
+        dispatch(updateAdminInfo({ email: newEmail }))
+        dispatch(updateUserProfile({ email: newEmail }))
+        setIsChangeEmailMode(false)
+        setNewEmail('')
+        setOtpValues(['', '', '', '', '', ''])
+        setOtpSent(false)
+        dispatch(setActiveSection('admin-info'))
+      } else {
+        toast.error(extractError(data))
+      }
+    } catch {
+      toast.error('Network error. Please try again.')
+    } finally {
+      setConfirmingEmail(false)
+    }
   }
 
   const filteredFeedbacks = commentFilter === 'ALL' 
@@ -226,10 +314,26 @@ export default function SettingsPage() {
               <div className="flex items-center gap-4">
                 <div className="relative">
                   <Avatar className="h-16 w-16">
-                    <AvatarImage src="/logo/shipon.jpg" />
-                    <AvatarFallback className="bg-blue-500 text-white">AD</AvatarFallback>
+                    {(avatarPreview || adminInfo.avatar) && (
+                      <AvatarImage src={avatarPreview || adminInfo.avatar} />
+                    )}
+                    <AvatarFallback className="bg-blue-500 text-white">
+                      {adminInfo.fullName
+                        ? adminInfo.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                        : 'AD'}
+                    </AvatarFallback>
                   </Avatar>
-                  <button className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-blue-500 text-white shadow-md hover:bg-blue-600">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarChange}
+                  />
+                  <button
+                    onClick={handleAvatarClick}
+                    className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-blue-500 text-white shadow-md hover:bg-blue-600"
+                  >
                     <Camera className="h-4 w-4" />
                   </button>
                 </div>
@@ -266,8 +370,9 @@ export default function SettingsPage() {
                 </div>
         
               </div>
-              <Button onClick={handleSubmit} className="w-full bg-blue-500 hover:bg-blue-600 sm:w-auto">
-                Confirm
+              <Button onClick={handleSubmit} disabled={updatingProfile} className="w-full bg-blue-500 hover:bg-blue-600 sm:w-auto gap-2">
+                {updatingProfile && <Loader2 className="h-4 w-4 animate-spin" />}
+                {updatingProfile ? 'Saving...' : 'Confirm'}
               </Button>
             </CardContent>
           </Card>
@@ -313,37 +418,6 @@ export default function SettingsPage() {
               <Button onClick={handlePasswordChange} className="w-full bg-blue-500 hover:bg-blue-600 sm:w-auto">
                 Save Changes
               </Button>
-            </CardContent>
-          </Card>
-        )
-
-      case 'notification':
-        return (
-          <Card className="border-gray-200 shadow-sm">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-100">
-                  <Bell className="h-5 w-5 text-orange-500" />
-                </div>
-                <CardTitle>Notification Rules</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {notifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4"
-                >
-                  <div>
-                    <h4 className="font-medium text-gray-900">{notification.title}</h4>
-                    <p className="text-sm text-gray-500">{notification.description}</p>
-                  </div>
-                  <Switch
-                    checked={notification.enabled}
-                    onCheckedChange={() => toggleNotification(notification.id)}
-                  />
-                </div>
-              ))}
             </CardContent>
           </Card>
         )
@@ -470,12 +544,20 @@ export default function SettingsPage() {
                   <button
                     type="button"
                     onClick={handleSendOtp}
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-100"
+                    disabled={sendingOtp}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Send OTP
+                    {sendingOtp ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : otpSent ? 'Resend OTP' : 'Send OTP'}
                   </button>
                 </div>
-                <p className="mt-1.5 text-xs text-gray-400">A 6-digit code will be sent to this email</p>
+                {otpSent && (
+                  <p className="mt-1.5 text-xs text-green-600">OTP sent! Check your email.</p>
+                )}
+                {!otpSent && (
+                  <p className="mt-1.5 text-xs text-gray-400">A 6-digit code will be sent to this email</p>
+                )}
               </div>
 
               <div className="border-t border-dashed border-gray-200" />
@@ -516,9 +598,13 @@ export default function SettingsPage() {
                   <ShieldCheck className="h-4 w-4 text-green-500" />
                   <span className="text-xs text-gray-500">Your email change is secured with two-step verification</span>
                 </div>
-                <Button onClick={handleConfirmEmail} className="bg-blue-500 hover:bg-blue-600 gap-2">
-                  <KeyRound className="h-4 w-4" />
-                  Confirm Email Change
+                <Button onClick={handleConfirmEmail} disabled={confirmingEmail} className="bg-blue-500 hover:bg-blue-600 gap-2">
+                  {confirmingEmail ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <KeyRound className="h-4 w-4" />
+                  )}
+                  {confirmingEmail ? 'Verifying...' : 'Confirm Email Change'}
                 </Button>
               </div>
             </CardContent>
@@ -590,12 +676,18 @@ export default function SettingsPage() {
               <CardContent className="flex flex-col items-center p-6">
                 <div className="relative">
                   <Avatar className="h-24 w-24">
-                    <AvatarImage src="/placeholder-avatar.jpg" />
-                    <AvatarFallback className="bg-orange-200 text-2xl">DW</AvatarFallback>
+                    {adminInfo.avatar && <AvatarImage src={adminInfo.avatar} />}
+                    <AvatarFallback className="bg-orange-200 text-2xl">
+                      {adminInfo.fullName
+                        ? adminInfo.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                        : 'AD'}
+                    </AvatarFallback>
                   </Avatar>
                 </div>
-                <h3 className="mt-4 text-lg font-semibold text-gray-900">Dexter Watts</h3>
-                <p className="text-sm text-gray-500">Update your store details and branding</p>
+                <h3 className="mt-4 text-lg font-semibold text-gray-900">
+                  {profileLoading ? 'Loading...' : adminInfo.fullName || 'Admin'}
+                </h3>
+                <p className="text-sm text-gray-500">{adminInfo.email || 'Settings'}</p>
               </CardContent>
             </Card>
 

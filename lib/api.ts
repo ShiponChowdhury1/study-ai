@@ -31,6 +31,11 @@ export async function api(
     delete headers['Content-Type']
   }
 
+  // If body is FormData, remove Content-Type so browser sets multipart boundary
+  if (options.body instanceof FormData) {
+    delete headers['Content-Type']
+  }
+
   return fetch(`${API_URL}${endpoint}`, {
     ...options,
     headers,

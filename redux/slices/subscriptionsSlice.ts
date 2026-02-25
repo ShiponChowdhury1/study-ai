@@ -31,25 +31,83 @@ export const fetchRevenueTrend = createAsyncThunk(
   },
 )
 
+export const fetchPlans = createAsyncThunk(
+  'subscriptions/fetchPlans',
+  async () => {
+    const res = await api('/subscriptions/plans/')
+    if (!res.ok) throw new Error('Failed to fetch plans')
+    const data = await res.json()
+    return data.results as SubscriptionPlan[]
+  },
+)
+
+export const createPlan = createAsyncThunk(
+  'subscriptions/createPlan',
+  async (plan: { name: string; description: string; price: number; currency: string; period: string; is_active: boolean }) => {
+    const res = await api('/subscriptions/plans/', {
+      method: 'POST',
+      body: JSON.stringify(plan),
+    })
+    if (!res.ok) throw new Error('Failed to create plan')
+    return (await res.json()) as SubscriptionPlan
+  },
+)
+
+export const updatePlanAsync = createAsyncThunk(
+  'subscriptions/updatePlan',
+  async ({ id, data }: { id: number; data: { name: string; description: string; price: number; currency: string; period: string; is_active: boolean } }) => {
+    const res = await api(`/subscriptions/plans/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+    if (!res.ok) throw new Error('Failed to update plan')
+    return (await res.json()) as SubscriptionPlan
+  },
+)
+
+export const deletePlanAsync = createAsyncThunk(
+  'subscriptions/deletePlan',
+  async (id: number) => {
+    const res = await api(`/subscriptions/plans/${id}/`, {
+      method: 'DELETE',
+    })
+    if (!res.ok) throw new Error('Failed to delete plan')
+    return id
+  },
+)
+
+export const fetchUserPlans = createAsyncThunk(
+  'subscriptions/fetchUserPlans',
+  async () => {
+    const res = await api('/subscriptions/user-subscriptions/')
+    if (!res.ok) throw new Error('Failed to fetch user plans')
+    return (await res.json()) as UserPlan[]
+  },
+)
+
 // Types
 export interface SubscriptionPlan {
-  id: string
+  id: number
   name: string
-  duration: string
-  price: number
+  description: string
+  price: string
   currency: string
-  features: {
-    label: string
-    value: string | number
-  }[]
-  subscribers: number
+  period: string
+  is_active: boolean
+  subscriber_count?: number
+  features: string[]
 }
 
 export interface UserPlan {
-  sl: number
-  user: string
-  plan: string
-  date: string
+  id: number
+  user: number
+  user_email: string
+  user_name: string
+  plan: number
+  plan_name: string
+  status: string
+  start_date: string
+  end_date: string | null
 }
 
 export interface RevenueTrendPoint {
@@ -67,8 +125,13 @@ interface SubscriptionsState {
   revenueTrend: RevenueTrendPoint[]
   // Plans
   plans: SubscriptionPlan[]
+  plansLoading: boolean
+  creatingPlan: boolean
+  updatingPlan: boolean
+  deletingPlanId: number | null
   // User plans
   userPlans: UserPlan[]
+  userPlansLoading: boolean
   // UI
   loading: boolean
   error: string | null
@@ -83,46 +146,13 @@ const initialState: SubscriptionsState = {
   failedPayments: 0,
   activeSubscribers: 0,
   revenueTrend: [],
-  plans: [
-    {
-      id: 'free',
-      name: 'Free',
-      duration: 'Forever',
-      price: 0,
-      currency: '¥',
-      features: [
-        { label: 'AI Generated Quizzes', value: 2 },
-        { label: 'Feedback Depth', value: 'Basic' },
-        { label: 'Education Plans', value: 'No' },
-        { label: 'Set of Flashcards', value: 1 },
-      ],
-      subscribers: 9211,
-    },
-    {
-      id: 'monthly',
-      name: 'Monthly',
-      duration: '1 Month',
-      price: 99,
-      currency: '¥',
-      features: [
-        { label: 'AI Generated Quizzes', value: 'Unlimited' },
-        { label: 'Sets of Flashcards', value: 'Unlimited' },
-        { label: 'Early access to updated features', value: 'Yes' },
-        { label: 'Priority Support', value: 'Yes' },
-      ],
-      subscribers: 1847,
-    },
-  ],
-  userPlans: [
-    { sl: 1, user: 'John Smith', plan: 'Monthly', date: '2026-01-23 09:15' },
-    { sl: 2, user: 'Sarah Johnson', plan: 'Monthly', date: '2026-01-23 08:42' },
-    { sl: 3, user: 'Mike Davis', plan: 'Monthly', date: '2026-01-23 07:28' },
-    { sl: 4, user: 'Emily Wilson', plan: 'Monthly', date: '2026-01-22 18:15' },
-    { sl: 5, user: 'David Brown', plan: 'Monthly', date: '2026-01-22 16:32' },
-    { sl: 6, user: 'Lisa Anderson', plan: 'Monthly', date: '2026-01-22 14:20' },
-    { sl: 7, user: 'Robert Taylor', plan: 'Monthly', date: '2026-01-22 11:45' },
-    { sl: 8, user: 'Jennifer Lee', plan: 'Monthly', date: '2026-01-22 09:10' },
-  ],
+  plans: [],
+  plansLoading: false,
+  creatingPlan: false,
+  updatingPlan: false,
+  deletingPlanId: null,
+  userPlans: [],
+  userPlansLoading: false,
   loading: false,
   error: null,
   isCreatePlanModalOpen: false,
@@ -160,7 +190,7 @@ const subscriptionsSlice = createSlice({
         state.plans[index] = action.payload
       }
     },
-    deletePlan(state, action: PayloadAction<string>) {
+    deletePlan(state, action: PayloadAction<number>) {
       state.plans = state.plans.filter((p) => p.id !== action.payload)
     },
   },
@@ -183,6 +213,60 @@ const subscriptionsSlice = createSlice({
       })
       .addCase(fetchRevenueTrend.fulfilled, (state, action) => {
         state.revenueTrend = action.payload
+      })
+      .addCase(fetchPlans.pending, (state) => {
+        state.plansLoading = true
+      })
+      .addCase(fetchPlans.fulfilled, (state, action) => {
+        state.plansLoading = false
+        state.plans = action.payload
+      })
+      .addCase(fetchPlans.rejected, (state) => {
+        state.plansLoading = false
+      })
+      .addCase(createPlan.pending, (state) => {
+        state.creatingPlan = true
+      })
+      .addCase(createPlan.fulfilled, (state, action) => {
+        state.creatingPlan = false
+        state.plans.push(action.payload)
+        state.isCreatePlanModalOpen = false
+      })
+      .addCase(createPlan.rejected, (state) => {
+        state.creatingPlan = false
+      })
+      .addCase(updatePlanAsync.pending, (state) => {
+        state.updatingPlan = true
+      })
+      .addCase(updatePlanAsync.fulfilled, (state, action) => {
+        state.updatingPlan = false
+        const index = state.plans.findIndex((p) => p.id === action.payload.id)
+        if (index !== -1) state.plans[index] = action.payload
+        state.isCreatePlanModalOpen = false
+        state.editingPlan = null
+      })
+      .addCase(updatePlanAsync.rejected, (state) => {
+        state.updatingPlan = false
+      })
+      .addCase(deletePlanAsync.pending, (state, action) => {
+        state.deletingPlanId = action.meta.arg
+      })
+      .addCase(deletePlanAsync.fulfilled, (state, action) => {
+        state.deletingPlanId = null
+        state.plans = state.plans.filter((p) => p.id !== action.payload)
+      })
+      .addCase(deletePlanAsync.rejected, (state) => {
+        state.deletingPlanId = null
+      })
+      .addCase(fetchUserPlans.pending, (state) => {
+        state.userPlansLoading = true
+      })
+      .addCase(fetchUserPlans.fulfilled, (state, action) => {
+        state.userPlansLoading = false
+        state.userPlans = action.payload
+      })
+      .addCase(fetchUserPlans.rejected, (state) => {
+        state.userPlansLoading = false
       })
   },
 })

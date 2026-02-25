@@ -127,6 +127,19 @@ const authSlice = createSlice({
       state.isAuthenticated = true
     },
 
+    // Update user profile (name, avatar)
+    updateUserProfile(state, action: PayloadAction<{ full_name?: string; avatar?: string; email?: string }>) {
+      if (state.user) {
+        if (action.payload.full_name !== undefined) state.user.full_name = action.payload.full_name
+        if (action.payload.avatar !== undefined) state.user.avatar = action.payload.avatar
+        if (action.payload.email !== undefined) state.user.email = action.payload.email
+        // Persist to localStorage
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('user', JSON.stringify(state.user))
+        }
+      }
+    },
+
     clearError(state) {
       state.error = null
     },
@@ -148,6 +161,7 @@ export const {
   resetPasswordSuccess,
   resetPasswordFailure,
   hydrateAuth,
+  updateUserProfile,
   clearError,
 } = authSlice.actions
 

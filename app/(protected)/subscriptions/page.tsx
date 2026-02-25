@@ -5,11 +5,13 @@ import {
   openCreatePlanModal,
   openEditPlanModal,
   closeCreatePlanModal,
-  addPlan,
-  updatePlan,
-  deletePlan,
   fetchSubscriptionStats,
   fetchRevenueTrend,
+  fetchPlans,
+  fetchUserPlans,
+  createPlan,
+  updatePlanAsync,
+  deletePlanAsync,
   SubscriptionPlan,
 } from '@/redux/slices/subscriptionsSlice'
 import { Header } from '@/components/layout/Header'
@@ -45,11 +47,12 @@ import {
   TrendingUp,
   AlertCircle,
   CheckCircle2,
-  Trash2,
-  Plus,
   Loader2,
+  Pencil,
+  Trash2,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { toast } from 'react-toastify'
 
 // ─── Stats Card (inline small variant) ─────────────────────────────────
 function SubscriptionStatsCard({
@@ -85,235 +88,228 @@ function PlanCard({
   plan,
   onEdit,
   onDelete,
+  deleting,
 }: {
   plan: SubscriptionPlan
   onEdit: () => void
   onDelete: () => void
+  deleting: boolean
 }) {
   return (
-    <Card className="border-gray-200 shadow-sm relative">
+    <Card className="border-gray-200 shadow-sm relative group">
       <CardContent className="p-6">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
             <h3 className="text-lg font-bold text-gray-900">{plan.name}</h3>
-            <p className="text-sm text-gray-500">{plan.duration}</p>
+            <p className="text-sm text-gray-500 capitalize">{plan.period}</p>
           </div>
-          <button
-            onClick={onDelete}
-            className="rounded-lg p-2 text-red-400 hover:bg-red-50 hover:text-red-600 transition"
-          >
-            <Trash2 className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-1">
+            <span
+              className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                plan.is_active
+                  ? 'bg-green-100 text-green-700'
+                  : 'bg-gray-100 text-gray-500'
+              }`}
+            >
+              {plan.is_active ? 'Active' : 'Inactive'}
+            </span>
+          </div>
         </div>
 
         {/* Price */}
         <div className="mt-4">
           <span className="text-3xl font-bold text-gray-900">
-            {plan.currency} {plan.price.toLocaleString()} RMB
+            {parseFloat(plan.price).toLocaleString()} {plan.currency}
           </span>
-          {plan.duration !== 'Forever' && (
-            <span className="text-sm text-gray-500"> /{plan.duration}</span>
-          )}
+          <span className="text-sm text-gray-500"> /{plan.period}</span>
         </div>
+
+        {/* Description */}
+        {plan.description && (
+          <p className="mt-3 text-sm text-gray-500">{plan.description}</p>
+        )}
 
         {/* Features */}
-        <div className="mt-5 space-y-3">
-          {plan.features.map((feature, i) => (
-            <div key={i} className="flex items-center justify-between text-sm">
-              <span className="text-gray-600">{feature.label}</span>
-              <span className="font-medium text-gray-900">{feature.value}</span>
-            </div>
-          ))}
-        </div>
+        {plan.features.length > 0 && (
+          <div className="mt-4 space-y-2">
+            {plan.features.map((feature, i) => (
+              <div key={i} className="flex items-center gap-2 text-sm">
+                <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                <span className="text-gray-600">{feature}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
-        {/* Footer */}
-        <div className="mt-6 flex items-center justify-between">
+        {/* Subscribers + Actions */}
+        <div className="mt-6 pt-4 border-t border-gray-100 flex items-end justify-between">
           <div>
             <p className="text-xs text-gray-500">Subscribers</p>
             <p className="text-lg font-bold text-blue-600">
-              {plan.subscribers.toLocaleString()}
+              {(plan.subscriber_count ?? 0).toLocaleString()}
             </p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onEdit}
-            className="border-blue-200 text-blue-600 hover:bg-blue-50"
-          >
-            Edit Plan
-          </Button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onEdit}
+              className="rounded-lg p-2 text-blue-500 hover:bg-blue-50 hover:text-blue-700 transition"
+              title="Edit Plan"
+            >
+              <Pencil className="h-4 w-4" />
+            </button>
+            <button
+              onClick={onDelete}
+              disabled={deleting}
+              className="rounded-lg p-2 text-red-400 hover:bg-red-50 hover:text-red-600 transition disabled:opacity-50"
+              title="Delete Plan"
+            >
+              {deleting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
+            </button>
+          </div>
         </div>
       </CardContent>
     </Card>
   )
 }
 
-// ─── Create/Edit Plan Modal ─────────────────────────────────────────────
-function CreatePlanModal({
+// ─── Create/Edit Plan Modal ──────────────────────────────────────────────
+function PlanModal({
   isOpen,
   onClose,
   editingPlan,
   onSave,
+  saving,
 }: {
   isOpen: boolean
   onClose: () => void
   editingPlan: SubscriptionPlan | null
-  onSave: (plan: SubscriptionPlan) => void
+  onSave: (plan: { name: string; description: string; price: number; currency: string; period: string; is_active: boolean }) => void
+  saving: boolean
 }) {
   const [name, setName] = useState('')
-  const [duration, setDuration] = useState('')
+  const [description, setDescription] = useState('')
   const [price, setPrice] = useState('')
-  const [features, setFeatures] = useState<{ label: string; value: string }[]>([
-    { label: '', value: '' },
-  ])
+  const [currency, setCurrency] = useState('BDT')
+  const [period, setPeriod] = useState('monthly')
+  const [isActive, setIsActive] = useState(true)
 
   useEffect(() => {
-    if (editingPlan) {
+    if (isOpen && editingPlan) {
       setName(editingPlan.name)
-      setDuration(editingPlan.duration)
-      setPrice(editingPlan.price.toString())
-      setFeatures(
-        editingPlan.features.map((f) => ({
-          label: f.label,
-          value: String(f.value),
-        }))
-      )
-    } else {
+      setDescription(editingPlan.description)
+      setPrice(parseFloat(editingPlan.price).toString())
+      setCurrency(editingPlan.currency)
+      setPeriod(editingPlan.period)
+      setIsActive(editingPlan.is_active)
+    } else if (isOpen) {
       setName('')
-      setDuration('')
+      setDescription('')
       setPrice('')
-      setFeatures([{ label: '', value: '' }])
+      setCurrency('BDT')
+      setPeriod('monthly')
+      setIsActive(true)
     }
-  }, [editingPlan, isOpen])
-
-  const handleAddFeature = () => {
-    setFeatures([...features, { label: '', value: '' }])
-  }
-
-  const handleFeatureChange = (
-    index: number,
-    field: 'label' | 'value',
-    val: string
-  ) => {
-    const updated = [...features]
-    updated[index][field] = val
-    setFeatures(updated)
-  }
-
-  const handleRemoveFeature = (index: number) => {
-    setFeatures(features.filter((_, i) => i !== index))
-  }
+  }, [isOpen, editingPlan])
 
   const handleSubmit = () => {
-    const plan: SubscriptionPlan = {
-      id: editingPlan?.id || name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now(),
+    onSave({
       name,
-      duration,
+      description,
       price: Number(price),
-      currency: '¥',
-      features: features
-        .filter((f) => f.label.trim())
-        .map((f) => ({
-          label: f.label,
-          value: isNaN(Number(f.value)) ? f.value : Number(f.value),
-        })),
-      subscribers: editingPlan?.subscribers || 0,
-    }
-    onSave(plan)
-    onClose()
+      currency,
+      period,
+      is_active: isActive,
+    })
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>
-            {editingPlan ? 'Edit Plan' : 'Create New Plan'}
-          </DialogTitle>
+          <DialogTitle>{editingPlan ? 'Edit Plan' : 'Create New Plan'}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">
-                Plan Name
-              </label>
+              <label className="text-sm font-medium text-gray-700">Plan Name</label>
               <Input
-                placeholder="e.g. Premium"
+                placeholder="e.g. Basic Plan"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">
-                Duration
-              </label>
-              <Input
-                placeholder="e.g. 1 Month"
-                value={duration}
-                onChange={(e) => setDuration(e.target.value)}
-              />
+              <label className="text-sm font-medium text-gray-700">Period</label>
+              <select
+                value={period}
+                onChange={(e) => setPeriod(e.target.value)}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              >
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+                <option value="weekly">Weekly</option>
+              </select>
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">
-              Price (RMB)
-            </label>
+            <label className="text-sm font-medium text-gray-700">Description</label>
             <Input
-              type="number"
-              placeholder="0"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
+              placeholder="e.g. Monthly plan"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
             />
           </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-gray-700">
-                Features
-              </label>
-              <button
-                type="button"
-                onClick={handleAddFeature}
-                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-500"
-              >
-                <Plus className="h-3 w-3" /> Add Feature
-              </button>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Price</label>
+              <Input
+                type="number"
+                placeholder="0"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
-              {features.map((feature, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <Input
-                    placeholder="Feature name"
-                    value={feature.label}
-                    onChange={(e) =>
-                      handleFeatureChange(i, 'label', e.target.value)
-                    }
-                    className="flex-1"
-                  />
-                  <Input
-                    placeholder="Value"
-                    value={feature.value}
-                    onChange={(e) =>
-                      handleFeatureChange(i, 'value', e.target.value)
-                    }
-                    className="w-28"
-                  />
-                  {features.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveFeature(i)}
-                      className="text-red-400 hover:text-red-600"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-              ))}
+              <label className="text-sm font-medium text-gray-700">Currency</label>
+              <select
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value)}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              >
+                <option value="BDT">BDT</option>
+                <option value="USD">USD</option>
+                <option value="CNY">CNY (¥)</option>
+              </select>
             </div>
           </div>
+
+          {editingPlan && (
+            <div className="flex items-center gap-3">
+              <label className="text-sm font-medium text-gray-700">Status</label>
+              <button
+                type="button"
+                onClick={() => setIsActive(!isActive)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  isActive ? 'bg-blue-600' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    isActive ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+              <span className="text-sm text-gray-500">{isActive ? 'Active' : 'Inactive'}</span>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
@@ -322,10 +318,14 @@ function CreatePlanModal({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={!name || !duration}
+            disabled={!name || !price || saving}
             className="bg-blue-600 hover:bg-blue-700 text-white"
           >
-            {editingPlan ? 'Update Plan' : 'Create Plan'}
+            {saving ? (
+              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {editingPlan ? 'Updating...' : 'Creating...'}</>
+            ) : (
+              editingPlan ? 'Update Plan' : 'Create Plan'
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -345,21 +345,42 @@ export default function SubscriptionsPage() {
     plans,
     userPlans,
     loading,
+    plansLoading,
+    creatingPlan,
+    updatingPlan,
+    deletingPlanId,
     isCreatePlanModalOpen,
     editingPlan,
+    userPlansLoading,
   } = useAppSelector((state) => state.subscriptions)
 
   useEffect(() => {
     dispatch(fetchSubscriptionStats())
     dispatch(fetchRevenueTrend())
+    dispatch(fetchPlans())
+    dispatch(fetchUserPlans())
   }, [dispatch])
 
-  const handleSavePlan = (plan: SubscriptionPlan) => {
+  const handleSavePlan = (planData: { name: string; description: string; price: number; currency: string; period: string; is_active: boolean }) => {
     if (editingPlan) {
-      dispatch(updatePlan(plan))
+      dispatch(updatePlanAsync({ id: editingPlan.id, data: planData }))
+        .unwrap()
+        .then(() => toast.success('Plan updated successfully'))
+        .catch(() => toast.error('Failed to update plan'))
     } else {
-      dispatch(addPlan(plan))
+      dispatch(createPlan(planData))
+        .unwrap()
+        .then(() => toast.success('Plan created successfully'))
+        .catch(() => toast.error('Failed to create plan'))
     }
+  }
+
+  const handleDeletePlan = (plan: SubscriptionPlan) => {
+    if (!confirm(`Are you sure you want to delete "${plan.name}"?`)) return
+    dispatch(deletePlanAsync(plan.id))
+      .unwrap()
+      .then(() => toast.success('Plan deleted successfully'))
+      .catch(() => toast.error('Failed to delete plan'))
   }
 
   if (loading) {
@@ -390,7 +411,7 @@ export default function SubscriptionsPage() {
             iconColor="text-blue-600"
             iconBgColor="bg-blue-100"
             label="Monthly Revenue"
-            value={`$${monthlyRevenue.toLocaleString()}`}
+            value={`৳${monthlyRevenue.toLocaleString()}`}
           />
           <SubscriptionStatsCard
             icon={TrendingUp}
@@ -449,7 +470,7 @@ export default function SubscriptionsPage() {
                       boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                     }}
                     formatter={(value: number | undefined) => [
-                      `$${(value ?? 0).toLocaleString()}`,
+                      `৳${(value ?? 0).toLocaleString()}`,
                       'Revenue',
                     ]}
                   />
@@ -482,14 +503,25 @@ export default function SubscriptionsPage() {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {plans.map((plan) => (
-              <PlanCard
-                key={plan.id}
-                plan={plan}
-                onEdit={() => dispatch(openEditPlanModal(plan))}
-                onDelete={() => dispatch(deletePlan(plan.id))}
-              />
-            ))}
+            {plansLoading ? (
+              <div className="col-span-full flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+              </div>
+            ) : plans.length === 0 ? (
+              <p className="col-span-full text-center py-8 text-sm text-gray-500">
+                No plans found. Create one to get started.
+              </p>
+            ) : (
+              plans.map((plan) => (
+                <PlanCard
+                  key={plan.id}
+                  plan={plan}
+                  onEdit={() => dispatch(openEditPlanModal(plan))}
+                  onDelete={() => handleDeletePlan(plan)}
+                  deleting={deletingPlanId === plan.id}
+                />
+              ))
+            )}
           </div>
         </div>
 
@@ -507,24 +539,59 @@ export default function SubscriptionsPage() {
                   <TableHead className="w-16 pl-6">SL</TableHead>
                   <TableHead>USER</TableHead>
                   <TableHead>PLAN</TableHead>
+                  <TableHead>STATUS</TableHead>
                   <TableHead className="pr-6">DATE</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {userPlans.map((row) => (
-                  <TableRow key={row.sl}>
-                    <TableCell className="pl-6 text-gray-500">
-                      {row.sl}.
-                    </TableCell>
-                    <TableCell className="font-medium text-gray-900">
-                      {row.user}
-                    </TableCell>
-                    <TableCell className="text-gray-600">{row.plan}</TableCell>
-                    <TableCell className="pr-6 text-gray-500">
-                      {row.date}
+                {userPlansLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8">
+                      <Loader2 className="h-5 w-5 animate-spin text-blue-600 mx-auto" />
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : userPlans.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-sm text-gray-500">
+                      No user subscriptions found.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  userPlans.map((row, index) => (
+                    <TableRow key={row.id}>
+                      <TableCell className="pl-6 text-gray-500">
+                        {index + 1}.
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium text-gray-900">{row.user_name}</p>
+                          <p className="text-xs text-gray-400">{row.user_email}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-gray-600">{row.plan_name}</TableCell>
+                      <TableCell>
+                        <span
+                          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${
+                            row.status === 'active'
+                              ? 'bg-green-100 text-green-700'
+                              : row.status === 'failed'
+                                ? 'bg-red-100 text-red-700'
+                                : 'bg-gray-100 text-gray-600'
+                          }`}
+                        >
+                          {row.status}
+                        </span>
+                      </TableCell>
+                      <TableCell className="pr-6 text-gray-500">
+                        {new Date(row.start_date).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        })}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -532,11 +599,12 @@ export default function SubscriptionsPage() {
       </main>
 
       {/* Create/Edit Plan Modal */}
-      <CreatePlanModal
+      <PlanModal
         isOpen={isCreatePlanModalOpen}
         onClose={() => dispatch(closeCreatePlanModal())}
         editingPlan={editingPlan}
         onSave={handleSavePlan}
+        saving={creatingPlan || updatingPlan}
       />
     </div>
   )
