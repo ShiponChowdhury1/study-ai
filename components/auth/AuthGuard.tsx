@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAppDispatch } from '@/redux/hooks'
 import { hydrateAuth } from '@/redux/slices/authSlice'
@@ -10,13 +10,16 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const dispatch = useAppDispatch()
   const [isChecking, setIsChecking] = useState(true)
+  const hasChecked = useRef(false)
 
   useEffect(() => {
+    if (hasChecked.current) return
+    hasChecked.current = true
+
     const token = localStorage.getItem('access_token')
     if (!token) {
       router.replace('/auth/login')
     } else {
-      // Hydrate Redux state from localStorage
       try {
         const userStr = localStorage.getItem('user')
         const refreshToken = localStorage.getItem('refresh_token')
@@ -27,7 +30,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       } catch {
         // ignore parse errors
       }
-      setIsChecking(false)
+      requestAnimationFrame(() => setIsChecking(false))
     }
   }, [router, dispatch])
 

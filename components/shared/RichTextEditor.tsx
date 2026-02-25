@@ -10,7 +10,7 @@ import {
   Link,
   Quote,
   Code,
-  Image,
+  ImageIcon,
   List,
   ListOrdered,
   AlignLeft,
@@ -191,7 +191,7 @@ export function RichTextEditor({
     { icon: <Link className="h-4 w-4" />, command: 'link', label: 'Insert Link' },
     { icon: <Quote className="h-4 w-4" />, command: 'blockquote', label: 'Quote' },
     { icon: <Code className="h-4 w-4" />, command: 'pre', label: 'Code Block' },
-    { icon: <Image className="h-4 w-4" />, command: 'image', label: 'Insert Image' },
+    { icon: <ImageIcon className="h-4 w-4" />, command: 'image', label: 'Insert Image' },
   ]
 
   const listButtons = [
@@ -225,7 +225,7 @@ export function RichTextEditor({
             onClick={() => { setShowHeadingDropdown(!showHeadingDropdown); setShowColorPicker(false); setShowBgColorPicker(false) }}
             className="flex h-8 items-center gap-1 rounded-md px-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200"
           >
-            <span className="min-w-[90px] text-left text-xs">{currentHeadingLabel}</span>
+            <span className="min-w-22.5 text-left text-xs">{currentHeadingLabel}</span>
             <ChevronDown className="h-3.5 w-3.5 text-gray-500" />
           </button>
           {showHeadingDropdown && (
@@ -428,7 +428,7 @@ export function RichTextEditor({
           'prose-pre:bg-gray-100 prose-pre:rounded-lg prose-pre:p-3 prose-pre:text-sm',
           'prose-ul:list-disc prose-ul:pl-5 prose-ol:list-decimal prose-ol:pl-5',
           'prose-img:rounded-lg prose-img:max-w-full',
-          '[&:empty]:before:content-[attr(data-placeholder)] [&:empty]:before:text-gray-400',
+          'empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400',
         )}
         style={{ minHeight }}
       />

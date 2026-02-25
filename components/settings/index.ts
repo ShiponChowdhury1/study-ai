@@ -1,0 +1,5 @@
+export { AdminInformation } from './AdminInformation'
+export { ChangePassword } from './ChangePassword'
+export { Feedback } from './Feedback'
+export { PrivacyPolicy } from './PrivacyPolicy'
+export { ChangeEmail } from './ChangeEmail'

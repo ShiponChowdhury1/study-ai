@@ -98,7 +98,7 @@ export default function ContentControlPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-[300px]">Title</TableHead>
+                        <TableHead className="w-75">Title</TableHead>
                         <TableHead className="hidden sm:table-cell">Content Type</TableHead>
                         <TableHead className="hidden md:table-cell">Source File</TableHead>
                         <TableHead>Created Date</TableHead>

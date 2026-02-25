@@ -1,6 +1,7 @@
 'use client'
 
 import { useAppSelector, useAppDispatch } from '@/redux/hooks'
+import type { RootState } from '@/redux/store'
 import {
   openCreatePlanModal,
   openEditPlanModal,
@@ -13,6 +14,7 @@ import {
   updatePlanAsync,
   deletePlanAsync,
   SubscriptionPlan,
+  UserPlan,
 } from '@/redux/slices/subscriptionsSlice'
 import { Header } from '@/components/layout/Header'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -51,7 +53,7 @@ import {
   Pencil,
   Trash2,
 } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { toast } from 'react-toastify'
 
 // ─── Stats Card (inline small variant) ─────────────────────────────────
@@ -198,22 +200,30 @@ function PlanModal({
   const [period, setPeriod] = useState('monthly')
   const [isActive, setIsActive] = useState(true)
 
+  const prevIsOpen = useRef(false)
   useEffect(() => {
-    if (isOpen && editingPlan) {
-      setName(editingPlan.name)
-      setDescription(editingPlan.description)
-      setPrice(parseFloat(editingPlan.price).toString())
-      setCurrency(editingPlan.currency)
-      setPeriod(editingPlan.period)
-      setIsActive(editingPlan.is_active)
-    } else if (isOpen) {
-      setName('')
-      setDescription('')
-      setPrice('')
-      setCurrency('BDT')
-      setPeriod('monthly')
-      setIsActive(true)
+    if (isOpen && !prevIsOpen.current) {
+      if (editingPlan) {
+        requestAnimationFrame(() => {
+          setName(editingPlan.name)
+          setDescription(editingPlan.description)
+          setPrice(parseFloat(editingPlan.price).toString())
+          setCurrency(editingPlan.currency)
+          setPeriod(editingPlan.period)
+          setIsActive(editingPlan.is_active)
+        })
+      } else {
+        requestAnimationFrame(() => {
+          setName('')
+          setDescription('')
+          setPrice('')
+          setCurrency('BDT')
+          setPeriod('monthly')
+          setIsActive(true)
+        })
+      }
     }
+    prevIsOpen.current = isOpen
   }, [isOpen, editingPlan])
 
   const handleSubmit = () => {
@@ -352,7 +362,7 @@ export default function SubscriptionsPage() {
     isCreatePlanModalOpen,
     editingPlan,
     userPlansLoading,
-  } = useAppSelector((state) => state.subscriptions)
+  } = useAppSelector((state: RootState) => state.subscriptions)
 
   useEffect(() => {
     dispatch(fetchSubscriptionStats())
@@ -557,7 +567,7 @@ export default function SubscriptionsPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  userPlans.map((row, index) => (
+                  userPlans.map((row: UserPlan, index: number) => (
                     <TableRow key={row.id}>
                       <TableCell className="pl-6 text-gray-500">
                         {index + 1}.

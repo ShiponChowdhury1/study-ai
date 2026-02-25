@@ -127,7 +127,7 @@ export default function UserManagementPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[280px]">User Name</TableHead>
+                    <TableHead className="w-70">User Name</TableHead>
                     <TableHead className="hidden sm:table-cell">Email</TableHead>
                     <TableHead className="hidden md:table-cell">Join Date</TableHead>
                     <TableHead>Status</TableHead>
