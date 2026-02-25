@@ -27,6 +27,8 @@ export function formatTimeAgo(dateStr: string): string {
 
 export interface FeedbackItem {
   id: number
+  user_name?: string
+  user_email?: string
   rating: number
   app_crashed_freezing: boolean
   poor_photo_quality: boolean
@@ -36,6 +38,7 @@ export interface FeedbackItem {
   comment: string
   need_quick_support: boolean
   created_at: string
+  is_responded?: boolean
 }
 
 export interface PrivacyPolicyData {

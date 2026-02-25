@@ -66,7 +66,7 @@ export function ChangePassword() {
   }
 
   return (
-    <Card className="border-gray-200 shadow-sm w-2/3">
+    <Card className="border-gray-200 shadow-sm w-full lg:w-2/3">
       <CardHeader>
         <CardTitle>Change Password</CardTitle>
         <CardDescription>Update your store details and branding</CardDescription>
