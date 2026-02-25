@@ -62,7 +62,7 @@ export const updateAdminProfile = createAsyncThunk(
 
 interface SettingsState {
   adminInfo: AdminInfo
-  activeSection: 'admin-info' | 'change-password' | 'notification' | 'privacy-policy' | 'change-email' | 'comment'
+  activeSection: 'admin-info' | 'change-password' | 'privacy-policy' | 'change-email' | 'feedback'
   loading: boolean
   profileLoading: boolean
   updatingProfile: boolean
