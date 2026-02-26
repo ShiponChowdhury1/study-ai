@@ -55,6 +55,7 @@ export function Feedback() {
     try {
       const res = await api('/dashboard/feedback/')
       const data = await res.json()
+      
       if (res.ok) {
         // Get replied feedback IDs from localStorage
         const repliedIds = JSON.parse(localStorage.getItem('repliedFeedbacks') || '[]')
@@ -64,6 +65,7 @@ export function Feedback() {
           ...fb,
           is_responded: fb.is_responded ?? repliedIds.includes(fb.id)
         }))
+        
         setFeedbacks(feedbacksWithDefaults)
       }
     } catch (error) {
@@ -86,6 +88,7 @@ export function Feedback() {
   const handleSendResponse = async () => {
     if (!selectedFeedback || !replyText.trim()) return
     setSending(true)
+    
     try {
       const res = await api(`/dashboard/feedback/${selectedFeedback.id}/reply/`, {
         method: 'POST',
@@ -95,6 +98,7 @@ export function Feedback() {
       if (res.ok) {
         // Save replied feedback ID to localStorage
         const repliedIds = JSON.parse(localStorage.getItem('repliedFeedbacks') || '[]')
+        
         if (!repliedIds.includes(selectedFeedback.id)) {
           repliedIds.push(selectedFeedback.id)
           localStorage.setItem('repliedFeedbacks', JSON.stringify(repliedIds))
@@ -106,6 +110,7 @@ export function Feedback() {
             fb.id === selectedFeedback.id ? { ...fb, is_responded: true } : fb
           )
         )
+        
         setSelectedFeedback(null)
         setReplyText('')
         toast.success('Reply sent successfully!')
