@@ -38,7 +38,7 @@ export interface FeedbackItem {
   comment: string
   need_quick_support: boolean
   created_at: string
-  is_responded?: boolean
+  is_responded?: boolean // Made optional since API might not return it
 }
 
 export interface PrivacyPolicyData {

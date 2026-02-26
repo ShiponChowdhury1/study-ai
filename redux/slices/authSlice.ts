@@ -6,6 +6,8 @@ export interface AuthUser {
   full_name: string
   avatar: string | null
   is_email_verified: boolean
+  is_staff: boolean
+  is_superuser: boolean
   quiz_difficulty: string
   created_at: string
   wechat_openid: string | null

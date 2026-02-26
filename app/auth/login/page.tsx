@@ -21,6 +21,7 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
 
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard'
+  const adminError = searchParams.get('error') === 'admin_only'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -49,7 +50,14 @@ function LoginForm() {
         return
       }
 
-      // Store tokens and user in localStorage
+      // Check if user is admin
+      if (!data.user.is_staff && !data.user.is_superuser) {
+        dispatch(loginFailure('Please use your admin credentials'))
+        toast.error('Please use your admin credentials')
+        return
+      }
+
+      // Store tokens and user in localStorage (only for admin users)
       localStorage.setItem('access_token', data.access)
       localStorage.setItem('refresh_token', data.refresh)
       localStorage.setItem('user', JSON.stringify(data.user))
@@ -73,6 +81,13 @@ function LoginForm() {
         <h1 className="text-2xl font-bold text-gray-900">Welcome Back</h1>
         <p className="mt-1 text-sm text-gray-500">Sign in to your admin account</p>
       </div>
+
+      {/* Admin-only error message */}
+      {adminError && !error && (
+        <div className="mb-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-700 border border-amber-200">
+          Please use your admin credentials
+        </div>
+      )}
 
       {/* Error message */}
       {error && (

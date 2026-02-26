@@ -25,6 +25,17 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         const refreshToken = localStorage.getItem('refresh_token')
         if (userStr) {
           const user = JSON.parse(userStr)
+
+          // Check if user is admin (is_staff or is_superuser)
+          if (!user.is_staff && !user.is_superuser) {
+            // Clear stored data for non-admin user
+            localStorage.removeItem('access_token')
+            localStorage.removeItem('refresh_token')
+            localStorage.removeItem('user')
+            router.replace('/auth/login?error=admin_only')
+            return
+          }
+
           dispatch(hydrateAuth({ user, access: token, refresh: refreshToken || '' }))
         }
       } catch {

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -8,6 +9,7 @@ import { Loader2, MessageSquare, Send, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { api } from '@/lib/api'
 import { FeedbackItem, formatTimeAgo } from '@/components/settings/utils'
+import { toast } from 'react-toastify'
 
 const avatarColors = [
   'bg-blue-600',
@@ -54,10 +56,18 @@ export function Feedback() {
       const res = await api('/dashboard/feedback/')
       const data = await res.json()
       if (res.ok) {
-        setFeedbacks(data.results || [])
+        // Get replied feedback IDs from localStorage
+        const repliedIds = JSON.parse(localStorage.getItem('repliedFeedbacks') || '[]')
+        
+        // Fix undefined is_responded field by defaulting to false
+        const feedbacksWithDefaults = (data.results || []).map((fb: { is_responded: any; id: any }) => ({
+          ...fb,
+          is_responded: fb.is_responded ?? repliedIds.includes(fb.id)
+        }))
+        setFeedbacks(feedbacksWithDefaults)
       }
-    } catch {
-      // silent fail
+    } catch (error) {
+      console.error('❌ Fetch feedbacks error:', error)
     } finally {
       setFeedbackLoading(false)
     }
@@ -77,11 +87,20 @@ export function Feedback() {
     if (!selectedFeedback || !replyText.trim()) return
     setSending(true)
     try {
-      const res = await api(`/dashboard/feedback/${selectedFeedback.id}/respond/`, {
+      const res = await api(`/dashboard/feedback/${selectedFeedback.id}/reply/`, {
         method: 'POST',
-        body: JSON.stringify({ response: replyText }),
+        body: JSON.stringify({ message: replyText }),
       })
+      
       if (res.ok) {
+        // Save replied feedback ID to localStorage
+        const repliedIds = JSON.parse(localStorage.getItem('repliedFeedbacks') || '[]')
+        if (!repliedIds.includes(selectedFeedback.id)) {
+          repliedIds.push(selectedFeedback.id)
+          localStorage.setItem('repliedFeedbacks', JSON.stringify(repliedIds))
+        }
+        
+        // Update local state immediately to mark as responded
         setFeedbacks((prev) =>
           prev.map((fb) =>
             fb.id === selectedFeedback.id ? { ...fb, is_responded: true } : fb
@@ -89,9 +108,13 @@ export function Feedback() {
         )
         setSelectedFeedback(null)
         setReplyText('')
+        toast.success('Reply sent successfully!')
+      } else {
+        const responseData = await res.json()
+        toast.error(`Failed to send reply: ${responseData.message || 'Please try again.'}`)
       }
-    } catch {
-      // silent fail
+    } catch (error) {
+      toast.error('Something went wrong. Please try again.')
     } finally {
       setSending(false)
     }
